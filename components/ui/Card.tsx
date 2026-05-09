@@ -1,0 +1,39 @@
+import React from 'react';
+import { View, ViewStyle, StyleSheet } from 'react-native';
+import { useColors } from '../../hooks/useTheme';
+import { Shadow, Radius, Spacing } from '../../constants/theme';
+
+interface CardProps {
+  children: React.ReactNode;
+  style?: ViewStyle;
+  padding?: number;
+  shadow?: 'sm' | 'md' | 'lg' | 'none';
+}
+
+export function Card({ children, style, padding = Spacing.md, shadow = 'sm' }: CardProps) {
+  const colors = useColors();
+
+  return (
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          padding,
+          borderColor: colors.borderLight,
+        },
+        shadow !== 'none' && Shadow[shadow],
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+  },
+});
