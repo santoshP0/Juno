@@ -42,23 +42,23 @@ export const FontWeight = {
 
 export const Shadow = {
   sm: {
-    shadowColor: '#4A3B47',
+    shadowColor: '#FF2D78',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
   md: {
-    shadowColor: '#4A3B47',
+    shadowColor: '#FF2D78',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.2,
     shadowRadius: 12,
     elevation: 6,
   },
   lg: {
-    shadowColor: '#4A3B47',
+    shadowColor: '#FF2D78',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.16,
+    shadowOpacity: 0.25,
     shadowRadius: 20,
     elevation: 10,
   },
@@ -68,10 +68,10 @@ export const lightTheme = {
   colors: Colors.light,
   brand: {
     rose: Colors.dustyRose,
-    sage: Colors.sage,
-    cream: Colors.cream,
-    plum: Colors.plum,
-    gold: Colors.gold,
+    lavender: Colors.sage,
+    blush: Colors.cream,
+    deep: Colors.plum,
+    fuchsia: Colors.gold,
   },
 };
 
@@ -79,10 +79,10 @@ export const darkTheme = {
   colors: Colors.dark,
   brand: {
     rose: Colors.dustyRose,
-    sage: Colors.sage,
-    cream: Colors.plumDark,
-    plum: Colors.dustyRoseLight,
-    gold: Colors.gold,
+    lavender: Colors.sage,
+    blush: Colors.plumLight,
+    deep: Colors.dustyRoseLight,
+    fuchsia: Colors.gold,
   },
 };
 

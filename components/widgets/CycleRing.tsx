@@ -23,10 +23,10 @@ interface CycleRingProps {
 }
 
 const PHASE_COLORS: Record<CyclePhase, string> = {
-  menstrual: Colors.dustyRose,
-  follicular: Colors.sage,
-  ovulation: Colors.success,
-  luteal: Colors.gold,
+  menstrual: Colors.dustyRose,   // hot pink
+  follicular: Colors.sage,       // lavender
+  ovulation: Colors.success,     // mint/emerald
+  luteal: Colors.gold,           // fuchsia
 };
 
 const PHASE_LABELS: Record<CyclePhase, string> = {

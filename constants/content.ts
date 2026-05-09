@@ -42,7 +42,7 @@ export const PHASE_INFO: Record<CyclePhase, {
   menstrual: {
     name: 'Menstrual Phase',
     description: 'Your body is shedding the uterine lining. Rest and gentle self-care are your allies.',
-    color: '#E8B4B8',
+    color: '#FF2D78',
     tips: [
       'Stay warm and rest as needed',
       'Try gentle yoga or walking',
@@ -53,7 +53,7 @@ export const PHASE_INFO: Record<CyclePhase, {
   follicular: {
     name: 'Follicular Phase',
     description: 'Energy is rising as your body prepares to release an egg. This is a great time for new beginnings.',
-    color: '#C5CFC2',
+    color: '#A78BFA',
     tips: [
       'Great time to start new projects',
       'Energy supports higher-intensity workouts',
@@ -64,7 +64,7 @@ export const PHASE_INFO: Record<CyclePhase, {
   ovulation: {
     name: 'Ovulation Phase',
     description: 'You\'re at peak fertility and energy. Communication and confidence are at their highest.',
-    color: '#7DC97A',
+    color: '#34D399',
     tips: [
       'Peak time for important conversations',
       'High energy — try HIIT or strength training',
@@ -75,7 +75,7 @@ export const PHASE_INFO: Record<CyclePhase, {
   luteal: {
     name: 'Luteal Phase',
     description: 'Your body prepares for either pregnancy or the next cycle. Tune inward and practice extra self-care.',
-    color: '#D4A574',
+    color: '#F472B6',
     tips: [
       'Reduce caffeine and sugar',
       'Prioritize sleep and stress management',
