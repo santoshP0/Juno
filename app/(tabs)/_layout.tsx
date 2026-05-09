@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Home, Calendar, BarChart2, BookOpen, User } from 'lucide-react-native';
@@ -12,12 +13,28 @@ function TabBarIcon({
   Icon,
   color,
   size,
+  focused,
 }: {
   Icon: typeof Home;
   color: string;
   size: number;
+  focused: boolean;
 }) {
-  return <Icon color={color} size={size} strokeWidth={2} />;
+  return (
+    <View style={styles.iconWrap}>
+      {focused && (
+        <View style={[styles.activeIndicator, { backgroundColor: Colors.dustyRose + '22' }]} />
+      )}
+      <Icon
+        color={color}
+        size={size}
+        strokeWidth={focused ? 2.4 : 1.8}
+      />
+      {focused && (
+        <View style={[styles.activeDot, { backgroundColor: Colors.dustyRose }]} />
+      )}
+    </View>
+  );
 }
 
 export default function TabsLayout() {
@@ -26,7 +43,6 @@ export default function TabsLayout() {
   const { reload } = useCycle();
   const { setProfile } = useUserStore();
 
-  // Load user profile + cycle data on mount
   useEffect(() => {
     const init = async () => {
       const user = await getUser(db);
@@ -44,15 +60,24 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: colors.tabBarInactive,
         tabBarStyle: {
           backgroundColor: colors.tabBar,
-          borderTopColor: colors.border,
+          borderTopColor: Colors.dustyRose + '20',
           borderTopWidth: 1,
-          height: 64,
-          paddingBottom: 8,
+          height: 70,
+          paddingBottom: 10,
           paddingTop: 6,
+          shadowColor: Colors.dustyRose,
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.08,
+          shadowRadius: 16,
+          elevation: 16,
         },
         tabBarLabelStyle: {
           fontSize: 10,
-          fontWeight: '500',
+          fontWeight: '600',
+          marginTop: 2,
+        },
+        tabBarItemStyle: {
+          paddingTop: 4,
         },
       }}
     >
@@ -60,8 +85,8 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <TabBarIcon Icon={Home} color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabBarIcon Icon={Home} color={color} size={size} focused={focused} />
           ),
         }}
       />
@@ -69,8 +94,8 @@ export default function TabsLayout() {
         name="calendar"
         options={{
           title: 'Calendar',
-          tabBarIcon: ({ color, size }) => (
-            <TabBarIcon Icon={Calendar} color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabBarIcon Icon={Calendar} color={color} size={size} focused={focused} />
           ),
         }}
       />
@@ -78,8 +103,8 @@ export default function TabsLayout() {
         name="insights"
         options={{
           title: 'Insights',
-          tabBarIcon: ({ color, size }) => (
-            <TabBarIcon Icon={BarChart2} color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabBarIcon Icon={BarChart2} color={color} size={size} focused={focused} />
           ),
         }}
       />
@@ -87,8 +112,8 @@ export default function TabsLayout() {
         name="articles"
         options={{
           title: 'Learn',
-          tabBarIcon: ({ color, size }) => (
-            <TabBarIcon Icon={BookOpen} color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabBarIcon Icon={BookOpen} color={color} size={size} focused={focused} />
           ),
         }}
       />
@@ -96,11 +121,34 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <TabBarIcon Icon={User} color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabBarIcon Icon={User} color={color} size={size} focused={focused} />
           ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  iconWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 48,
+    height: 32,
+    position: 'relative',
+  },
+  activeIndicator: {
+    position: 'absolute',
+    width: 44,
+    height: 30,
+    borderRadius: 15,
+  },
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    position: 'absolute',
+    bottom: -6,
+  },
+});

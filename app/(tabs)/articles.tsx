@@ -5,14 +5,12 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
-  FlatList,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, Bookmark, BookmarkCheck } from 'lucide-react-native';
+import { Search, Bookmark, BookmarkCheck, Clock, ChevronRight } from 'lucide-react-native';
 
 import { Typography } from '../../components/ui/Typography';
-import { Card } from '../../components/ui/Card';
 import { EmptyState } from '../../components/widgets/EmptyState';
 import { useColors } from '../../hooks/useTheme';
 import { useCycleStore } from '../../stores/cycleStore';
@@ -20,16 +18,27 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { addBookmark, removeBookmark } from '../../lib/db/queries';
 import { Colors } from '../../constants/colors';
 import { ARTICLE_CATEGORIES } from '../../constants/content';
-import { Spacing, Radius } from '../../constants/theme';
+import { Spacing, Radius, Shadow } from '../../constants/theme';
 import type { Article, ArticleCategory } from '../../types';
 
-// articles imported — will exist once agent writes the file
 let ARTICLES: Article[] = [];
 try {
   ARTICLES = require('../../constants/articles.json') as Article[];
 } catch {
   ARTICLES = [];
 }
+
+const CATEGORY_COLORS: Record<string, string> = {
+  cycle_basics: Colors.dustyRose,
+  health_conditions: Colors.error,
+  nutrition: Colors.success,
+  fitness: Colors.sage,
+  mental_health: Colors.gold,
+  sexual_health: '#F97316',
+  pregnancy: '#EC4899',
+  perimenopause: Colors.sageDark,
+  ttc: Colors.dustyRoseDark,
+};
 
 function ArticleCard({
   article,
@@ -43,33 +52,78 @@ function ArticleCard({
   onToggleBookmark: () => void;
 }) {
   const colors = useColors();
+  const accentColor = CATEGORY_COLORS[article.category] ?? Colors.dustyRose;
+  const catLabel =
+    ARTICLE_CATEGORIES.find((c) => c.key === article.category)?.label ?? article.category;
+
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
-      <Card padding={16} style={styles.articleCard}>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.cardWrap}>
+      <View
+        style={[
+          styles.articleCard,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            borderLeftColor: accentColor,
+          },
+          Shadow.sm,
+        ]}
+      >
+        {/* Top row: category badge + bookmark */}
         <View style={styles.articleHeader}>
-          <View style={[styles.categoryBadge, { backgroundColor: Colors.dustyRose + '22' }]}>
-            <Typography variant="caption" color={Colors.dustyRoseDark} style={{ fontWeight: '600' }}>
-              {ARTICLE_CATEGORIES.find((c) => c.key === article.category)?.label ?? article.category}
+          <View style={[styles.categoryBadge, { backgroundColor: accentColor + '18' }]}>
+            <View style={[styles.categoryDot, { backgroundColor: accentColor }]} />
+            <Typography
+              variant="caption"
+              color={accentColor}
+              style={{ fontWeight: '700' }}
+            >
+              {catLabel}
             </Typography>
           </View>
-          <TouchableOpacity onPress={onToggleBookmark} style={styles.bookmarkBtn}>
+          <TouchableOpacity
+            onPress={onToggleBookmark}
+            style={[styles.bookmarkBtn, { backgroundColor: bookmarked ? Colors.dustyRose + '15' : 'transparent' }]}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
             {bookmarked ? (
-              <BookmarkCheck size={20} color={Colors.dustyRose} />
+              <BookmarkCheck size={18} color={Colors.dustyRose} />
             ) : (
-              <Bookmark size={20} color={colors.textTertiary} />
+              <Bookmark size={18} color={colors.textTertiary} />
             )}
           </TouchableOpacity>
         </View>
-        <Typography variant="h4" style={{ marginTop: 8, marginBottom: 6 }}>
+
+        {/* Title */}
+        <Typography
+          variant="h4"
+          style={{ marginTop: 10, marginBottom: 6, fontWeight: '700', lineHeight: 24 }}
+          numberOfLines={2}
+        >
           {article.title}
         </Typography>
-        <Typography variant="body2" color={colors.textSecondary} numberOfLines={2}>
+
+        {/* Summary */}
+        <Typography
+          variant="body2"
+          color={colors.textSecondary}
+          numberOfLines={2}
+          style={{ lineHeight: 20 }}
+        >
           {article.summary}
         </Typography>
-        <Typography variant="caption" color={colors.textTertiary} style={{ marginTop: 8 }}>
-          {article.readingTimeMinutes} min read
-        </Typography>
-      </Card>
+
+        {/* Footer: reading time + arrow */}
+        <View style={styles.articleFooter}>
+          <View style={styles.readTime}>
+            <Clock size={12} color={colors.textTertiary} />
+            <Typography variant="caption" color={colors.textTertiary}>
+              {article.readingTimeMinutes} min read
+            </Typography>
+          </View>
+          <ChevronRight size={14} color={colors.textTertiary} />
+        </View>
+      </View>
     </TouchableOpacity>
   );
 }
@@ -114,22 +168,36 @@ export default function ArticlesScreen() {
       <ScrollView
         contentContainerStyle={styles.scroll}
         stickyHeaderIndices={[0]}
+        showsVerticalScrollIndicator={false}
       >
-        {/* Sticky header */}
+        {/* ── Sticky header ─────────────────────────────── */}
         <View style={[styles.stickyHeader, { backgroundColor: colors.background }]}>
-          <Typography variant="h3" style={{ marginBottom: Spacing.sm }}>Learn</Typography>
-          {/* Search */}
-          <View style={[styles.searchBar, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}>
-            <Search size={18} color={colors.textTertiary} />
+          <Typography variant="h3" style={{ marginBottom: Spacing.sm, fontWeight: '800' }}>
+            Learn
+          </Typography>
+
+          {/* Search bar */}
+          <View
+            style={[
+              styles.searchBar,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+              },
+              Shadow.sm,
+            ]}
+          >
+            <Search size={18} color={Colors.dustyRose} />
             <TextInput
               value={search}
               onChangeText={setSearch}
               placeholder="Search articles..."
               placeholderTextColor={colors.textTertiary}
-              style={{ flex: 1, color: colors.text, fontSize: 15, marginLeft: 8 }}
+              style={{ flex: 1, color: colors.text, fontSize: 15, marginLeft: 10 }}
             />
           </View>
-          {/* Category filter */}
+
+          {/* Category chips */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -141,49 +209,57 @@ export default function ArticlesScreen() {
               style={[
                 styles.catChip,
                 {
-                  backgroundColor: !selectedCategory ? Colors.dustyRose : colors.surfaceSecondary,
+                  backgroundColor: !selectedCategory ? Colors.dustyRose : colors.surface,
                   borderColor: !selectedCategory ? Colors.dustyRose : colors.border,
                 },
+                !selectedCategory ? Shadow.sm : undefined,
               ]}
             >
               <Typography
                 variant="caption"
                 color={!selectedCategory ? '#fff' : colors.textSecondary}
-                style={{ fontWeight: '600' }}
+                style={{ fontWeight: '700' }}
               >
                 All
               </Typography>
             </TouchableOpacity>
-            {ARTICLE_CATEGORIES.map((cat) => (
-              <TouchableOpacity
-                key={cat.key}
-                onPress={() => setSelectedCategory(cat.key)}
-                style={[
-                  styles.catChip,
-                  {
-                    backgroundColor:
-                      selectedCategory === cat.key ? Colors.dustyRose : colors.surfaceSecondary,
-                    borderColor:
-                      selectedCategory === cat.key ? Colors.dustyRose : colors.border,
-                  },
-                ]}
-              >
-                <Typography
-                  variant="caption"
-                  color={selectedCategory === cat.key ? '#fff' : colors.textSecondary}
-                  style={{ fontWeight: '600' }}
+            {ARTICLE_CATEGORIES.map((cat) => {
+              const active = selectedCategory === cat.key;
+              const catColor = CATEGORY_COLORS[cat.key] ?? Colors.dustyRose;
+              return (
+                <TouchableOpacity
+                  key={cat.key}
+                  onPress={() => setSelectedCategory(cat.key)}
+                  style={[
+                    styles.catChip,
+                    {
+                      backgroundColor: active ? catColor : colors.surface,
+                      borderColor: active ? catColor : colors.border,
+                    },
+                    active ? Shadow.sm : undefined,
+                  ]}
                 >
-                  {cat.label}
-                </Typography>
-              </TouchableOpacity>
-            ))}
+                  <Typography
+                    variant="caption"
+                    color={active ? '#fff' : colors.textSecondary}
+                    style={{ fontWeight: '700' }}
+                  >
+                    {cat.label}
+                  </Typography>
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
         </View>
 
-        {/* Bookmarks section */}
+        {/* ── Bookmarks section ─────────────────────────── */}
         {!selectedCategory && !search && bookmarks.length > 0 && (
-          <View style={{ marginBottom: Spacing.sm }}>
-            <Typography variant="label" color={colors.textSecondary} style={{ marginBottom: 8 }}>
+          <View style={styles.section}>
+            <Typography
+              variant="label"
+              color={colors.textSecondary}
+              style={{ marginBottom: Spacing.sm, marginHorizontal: Spacing.md, fontWeight: '700' }}
+            >
               Bookmarked
             </Typography>
             {ARTICLES.filter((a) => bookmarks.includes(a.id)).map((article) => (
@@ -198,7 +274,17 @@ export default function ArticlesScreen() {
           </View>
         )}
 
-        {/* Article list */}
+        {/* ── Article list ──────────────────────────────── */}
+        {!selectedCategory && !search && (
+          <Typography
+            variant="label"
+            color={colors.textSecondary}
+            style={{ marginBottom: Spacing.sm, marginHorizontal: Spacing.md, fontWeight: '700' }}
+          >
+            All articles · {ARTICLES.length}
+          </Typography>
+        )}
+
         {filtered.length === 0 ? (
           <EmptyState
             emoji="🔍"
@@ -232,27 +318,34 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    height: 44,
+    paddingHorizontal: 14,
+    height: 46,
     borderRadius: Radius.full,
     borderWidth: 1.5,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   catScroll: { marginHorizontal: -Spacing.md },
   catContent: {
     paddingHorizontal: Spacing.md,
     gap: 8,
+    paddingBottom: 4,
   },
   catChip: {
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: Radius.full,
     borderWidth: 1.5,
   },
-  articleCard: {
+  section: { marginBottom: Spacing.sm },
+  cardWrap: {
     marginHorizontal: Spacing.md,
     marginBottom: Spacing.sm,
+  },
+  articleCard: {
+    padding: Spacing.md,
     borderRadius: Radius.xl,
+    borderWidth: 1,
+    borderLeftWidth: 4,
   },
   articleHeader: {
     flexDirection: 'row',
@@ -260,9 +353,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   categoryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: Radius.full,
   },
-  bookmarkBtn: { padding: 4 },
+  categoryDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  bookmarkBtn: {
+    padding: 6,
+    borderRadius: 10,
+  },
+  articleFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    paddingTop: 10,
+  },
+  readTime: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
 });

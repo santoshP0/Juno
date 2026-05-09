@@ -5,12 +5,14 @@ import {
   StyleSheet,
   RefreshControl,
   TouchableOpacity,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Plus, Droplets, Smile, FileText } from 'lucide-react-native';
+import { Droplets, Smile, FileText, Settings, ChevronRight } from 'lucide-react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import * as Haptics from 'expo-haptics';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
 import { CycleRing } from '../../components/widgets/CycleRing';
 import { PhaseCard } from '../../components/widgets/PhaseCard';
@@ -23,12 +25,69 @@ import { useCycle } from '../../hooks/useCycle';
 import { useUserStore } from '../../stores/userStore';
 
 import { Colors } from '../../constants/colors';
-import { Spacing, Shadow } from '../../constants/theme';
+import { Spacing, Shadow, Radius } from '../../constants/theme';
 import { DAILY_INSIGHTS_BY_PHASE } from '../../constants/content';
 import { formatDate, todayStr } from '../../lib/utils/date';
 import { formatDaysUntil } from '../../lib/utils/formatting';
 import { insertCycle } from '../../lib/db/queries';
 import { useCycleStore } from '../../stores/cycleStore';
+import type { CyclePhase } from '../../types';
+
+const { width } = Dimensions.get('window');
+
+const PHASE_GRADIENT: Record<CyclePhase, string[]> = {
+  menstrual: ['#FF2D78', '#FF6BA8'],
+  follicular: ['#A78BFA', '#C4B5FD'],
+  ovulation: ['#34D399', '#6EE7B7'],
+  luteal: ['#F472B6', '#FBCFE8'],
+};
+
+const PHASE_LABELS: Record<CyclePhase, string> = {
+  menstrual: 'Menstrual',
+  follicular: 'Follicular',
+  ovulation: 'Ovulation',
+  luteal: 'Luteal',
+};
+
+const PREGNANCY_CHANCE_COLOR: Record<string, string> = {
+  very_low: Colors.sage,
+  low: Colors.sage,
+  medium: Colors.gold,
+  high: Colors.success,
+  very_high: Colors.success,
+};
+
+function MiniStat({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: string;
+  color: string;
+}) {
+  const colors = useColors();
+  return (
+    <View style={[styles.miniStat, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <Typography
+        variant="caption"
+        color={colors.textTertiary}
+        align="center"
+        style={{ marginBottom: 2 }}
+      >
+        {label}
+      </Typography>
+      <Typography
+        variant="label"
+        color={color}
+        align="center"
+        style={{ fontWeight: '700' }}
+      >
+        {value}
+      </Typography>
+    </View>
+  );
+}
 
 function QuickLogButton({
   icon: Icon,
@@ -36,7 +95,7 @@ function QuickLogButton({
   color,
   onPress,
 }: {
-  icon: typeof Plus;
+  icon: typeof Droplets;
   label: string;
   color: string;
   onPress: () => void;
@@ -46,45 +105,55 @@ function QuickLogButton({
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.8}
-      style={[
-        styles.quickBtn,
-        { backgroundColor: color + '22', borderColor: color },
-      ]}
+      style={[styles.quickBtn, { backgroundColor: color + '18', borderColor: color + '55' }]}
     >
-      <Icon color={color} size={20} strokeWidth={2} />
-      <Typography variant="caption" color={color} style={{ marginTop: 4, textAlign: 'center' }}>
+      <View style={[styles.quickBtnIcon, { backgroundColor: color + '22' }]}>
+        <Icon color={color} size={22} strokeWidth={2} />
+      </View>
+      <Typography
+        variant="caption"
+        color={color}
+        align="center"
+        style={{ marginTop: 6, fontWeight: '600' }}
+      >
         {label}
       </Typography>
     </TouchableOpacity>
   );
 }
 
-function UpcomingStrip({ prediction }: { prediction: NonNullable<ReturnType<typeof useCycle>['prediction']> }) {
+function UpcomingCard({
+  emoji,
+  label,
+  dateStr,
+  color,
+}: {
+  emoji: string;
+  label: string;
+  dateStr: string;
+  color: string;
+}) {
   const colors = useColors();
-
-  const events = useMemo(() => [
-    { label: 'Period', date: prediction.nextPeriodStart, color: Colors.dustyRose, emoji: '🔴' },
-    { label: 'Fertile window', date: prediction.fertileWindowStart, color: Colors.success, emoji: '💚' },
-    { label: 'Ovulation', date: prediction.ovulationDay, color: Colors.sageDark, emoji: '✨' },
-  ], [prediction]);
-
   return (
-    <Card style={styles.strip} padding={14}>
-      <Typography variant="label" color={colors.textSecondary} style={{ marginBottom: 10 }}>
-        Upcoming
+    <View style={[styles.upcomingCard, { backgroundColor: color + '12', borderColor: color + '30' }]}>
+      <Typography style={{ fontSize: 22 }}>{emoji}</Typography>
+      <Typography
+        variant="caption"
+        color={colors.textTertiary}
+        align="center"
+        style={{ marginTop: 6, marginBottom: 2 }}
+      >
+        {label}
       </Typography>
-      {events.map((e) => (
-        <View key={e.label} style={styles.eventRow}>
-          <Typography style={{ fontSize: 16 }}>{e.emoji}</Typography>
-          <Typography variant="body2" style={{ flex: 1 }}>
-            {e.label}
-          </Typography>
-          <Typography variant="body2" color={e.color} style={{ fontWeight: '600' }}>
-            {formatDate(e.date, 'MMM d')}
-          </Typography>
-        </View>
-      ))}
-    </Card>
+      <Typography
+        variant="label"
+        color={color}
+        align="center"
+        style={{ fontWeight: '700' }}
+      >
+        {dateStr}
+      </Typography>
+    </View>
   );
 }
 
@@ -136,29 +205,51 @@ export default function HomeScreen() {
     const hour = new Date().getHours();
     const timeGreeting =
       hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-    return name ? `${timeGreeting}, ${name}` : timeGreeting;
+    return name ? `${timeGreeting}, ${name} ✨` : `${timeGreeting} ✨`;
   }, [profile?.name]);
+
+  const phaseColor = prediction ? PHASE_GRADIENT[prediction.currentPhase][0] : Colors.dustyRose;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={styles.scroll}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.dustyRose} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.dustyRose}
+            colors={[Colors.dustyRose]}
+          />
         }
+        showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Typography variant="h4">{greeting}</Typography>
-          <Typography variant="caption" color={colors.textTertiary}>
-            {formatDate(new Date(), 'EEEE, MMMM d')}
-          </Typography>
-        </View>
+        {/* ── Header ─────────────────────────────────────── */}
+        <Animated.View entering={FadeInDown.delay(0).duration(500)} style={styles.header}>
+          <View>
+            <Typography variant="h4" style={{ fontWeight: '700' }}>
+              {greeting}
+            </Typography>
+            <Typography variant="caption" color={colors.textTertiary} style={{ marginTop: 2 }}>
+              {formatDate(new Date(), 'EEEE, MMMM d')}
+            </Typography>
+          </View>
+          <TouchableOpacity
+            onPress={() => router.push('/settings')}
+            style={[styles.settingsBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          >
+            <Settings size={18} color={colors.textSecondary} strokeWidth={1.8} />
+          </TouchableOpacity>
+        </Animated.View>
 
-        {/* Cycle Ring */}
         {prediction ? (
           <>
-            <View style={styles.ringWrap}>
+            {/* ── Cycle Ring Hero ─────────────────────────── */}
+            <Animated.View entering={FadeInUp.delay(100).duration(600)} style={styles.heroSection}>
+              {/* Decorative glow behind ring */}
+              <View style={[styles.ringGlow, { backgroundColor: phaseColor + '12' }]} />
+              <View style={[styles.ringGlowOuter, { backgroundColor: phaseColor + '06' }]} />
+
               <CycleRing
                 currentDay={prediction.currentCycleDay}
                 cycleLength={prediction.avgCycleLength}
@@ -166,81 +257,164 @@ export default function HomeScreen() {
                 daysUntilPeriod={prediction.daysUntilNextPeriod}
                 size={240}
               />
-            </View>
+            </Animated.View>
 
-            {/* Pregnancy chance card */}
-            <Card style={styles.chanceCard} padding={14}>
-              <View style={styles.chanceRow}>
-                <Typography variant="label" color={colors.textSecondary}>
-                  Pregnancy chance today
-                </Typography>
-                <Typography
-                  variant="label"
-                  color={
-                    prediction.pregnancyChance === 'high' || prediction.pregnancyChance === 'very_high'
-                      ? Colors.success
-                      : Colors.dustyRose
-                  }
-                  style={{ textTransform: 'capitalize' }}
-                >
-                  {prediction.pregnancyChance.replace('_', ' ')}
-                </Typography>
-              </View>
-            </Card>
+            {/* ── Mini stats strip ────────────────────────── */}
+            <Animated.View entering={FadeInDown.delay(200).duration(500)} style={styles.miniStatsRow}>
+              <MiniStat
+                label="Cycle day"
+                value={`${prediction.currentCycleDay}`}
+                color={phaseColor}
+              />
+              <MiniStat
+                label="Avg length"
+                value={`${prediction.avgCycleLength}d`}
+                color={Colors.sage}
+              />
+              <MiniStat
+                label="Period in"
+                value={
+                  prediction.daysUntilNextPeriod > 0
+                    ? `${prediction.daysUntilNextPeriod}d`
+                    : 'Today'
+                }
+                color={Colors.gold}
+              />
+            </Animated.View>
 
-            {/* Phase Card */}
-            <PhaseCard phase={prediction.currentPhase} compact />
+            {/* ── Phase card ──────────────────────────────── */}
+            <Animated.View entering={FadeInDown.delay(250).duration(500)}>
+              <PhaseCard phase={prediction.currentPhase} compact />
+            </Animated.View>
 
-            {/* Upcoming events */}
-            <UpcomingStrip prediction={prediction} />
+            {/* ── Pregnancy chance ────────────────────────── */}
+            <Animated.View entering={FadeInDown.delay(300).duration(500)}>
+              <Card style={styles.chanceCard} padding={14}>
+                <View style={styles.chanceRow}>
+                  <Typography variant="body2" color={colors.textSecondary}>
+                    Pregnancy chance today
+                  </Typography>
+                  <View
+                    style={[
+                      styles.chanceBadge,
+                      {
+                        backgroundColor:
+                          (PREGNANCY_CHANCE_COLOR[prediction.pregnancyChance] ?? Colors.sage) + '20',
+                      },
+                    ]}
+                  >
+                    <Typography
+                      variant="caption"
+                      color={PREGNANCY_CHANCE_COLOR[prediction.pregnancyChance] ?? Colors.sage}
+                      style={{ fontWeight: '700', textTransform: 'capitalize' }}
+                    >
+                      {prediction.pregnancyChance.replace('_', ' ')}
+                    </Typography>
+                  </View>
+                </View>
+              </Card>
+            </Animated.View>
+
+            {/* ── Upcoming events ─────────────────────────── */}
+            <Animated.View entering={FadeInDown.delay(350).duration(500)}>
+              <Card padding={16} style={styles.sectionCard}>
+                <View style={styles.sectionHeader}>
+                  <Typography variant="label" color={colors.textSecondary} style={{ fontWeight: '600' }}>
+                    Upcoming
+                  </Typography>
+                  <ChevronRight size={16} color={colors.textTertiary} />
+                </View>
+                <View style={styles.upcomingRow}>
+                  <UpcomingCard
+                    emoji="🩸"
+                    label="Period"
+                    dateStr={formatDate(prediction.nextPeriodStart, 'MMM d')}
+                    color={Colors.dustyRose}
+                  />
+                  <UpcomingCard
+                    emoji="🌿"
+                    label="Fertile"
+                    dateStr={formatDate(prediction.fertileWindowStart, 'MMM d')}
+                    color={Colors.success}
+                  />
+                  <UpcomingCard
+                    emoji="✨"
+                    label="Ovulation"
+                    dateStr={formatDate(prediction.ovulationDay, 'MMM d')}
+                    color={Colors.sage}
+                  />
+                </View>
+              </Card>
+            </Animated.View>
           </>
         ) : (
           <EmptyState
             emoji="🌱"
             title="Getting started"
-            description="Log your first period to unlock cycle predictions."
+            description="Log your first period to unlock cycle predictions and insights."
             actionLabel="Log period start"
             onAction={handleLogPeriod}
           />
         )}
 
-        {/* Quick log buttons */}
-        <Card style={styles.quickRow} padding={14}>
-          <Typography variant="label" color={colors.textSecondary} style={{ marginBottom: 12 }}>
-            Quick log
-          </Typography>
-          <View style={styles.quickButtons}>
-            <QuickLogButton
-              icon={Droplets}
-              label="Period"
-              color={Colors.dustyRose}
-              onPress={handleLogPeriod}
-            />
-            <QuickLogButton
-              icon={Smile}
-              label="Mood"
-              color={Colors.sage}
-              onPress={handleQuickLog}
-            />
-            <QuickLogButton
-              icon={FileText}
-              label="Log day"
-              color={Colors.gold}
-              onPress={handleQuickLog}
-            />
-          </View>
-        </Card>
-
-        {/* Daily insight */}
-        {dailyInsight ? (
-          <Card style={styles.insightCard} padding={16}>
-            <Typography variant="label" color={Colors.gold} style={{ marginBottom: 6 }}>
-              ✨ Daily insight
+        {/* ── Quick log ───────────────────────────────────── */}
+        <Animated.View entering={FadeInDown.delay(400).duration(500)}>
+          <Card padding={16} style={styles.sectionCard}>
+            <Typography
+              variant="label"
+              color={colors.textSecondary}
+              style={{ marginBottom: 14, fontWeight: '600' }}
+            >
+              Quick log
             </Typography>
-            <Typography variant="body2" color={colors.textSecondary}>
-              {dailyInsight}
-            </Typography>
+            <View style={styles.quickButtons}>
+              <QuickLogButton
+                icon={Droplets}
+                label="Period"
+                color={Colors.dustyRose}
+                onPress={handleLogPeriod}
+              />
+              <QuickLogButton
+                icon={Smile}
+                label="Mood"
+                color={Colors.sage}
+                onPress={handleQuickLog}
+              />
+              <QuickLogButton
+                icon={FileText}
+                label="Log day"
+                color={Colors.gold}
+                onPress={handleQuickLog}
+              />
+            </View>
           </Card>
+        </Animated.View>
+
+        {/* ── Daily insight ────────────────────────────────── */}
+        {dailyInsight ? (
+          <Animated.View entering={FadeInDown.delay(450).duration(500)}>
+            <View
+              style={[
+                styles.insightCard,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  borderLeftColor: Colors.gold,
+                },
+              ]}
+            >
+              <Typography
+                variant="label"
+                color={Colors.gold}
+                style={{ marginBottom: 8, fontWeight: '700' }}
+              >
+                ✨ Daily insight
+              </Typography>
+              <Typography variant="body2" color={colors.textSecondary} style={{ lineHeight: 22 }}>
+                {dailyInsight}
+              </Typography>
+            </View>
+          </Animated.View>
         ) : null}
       </ScrollView>
     </SafeAreaView>
@@ -249,30 +423,114 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scroll: { padding: Spacing.md, gap: Spacing.md, paddingBottom: Spacing['2xl'] },
-  header: { paddingVertical: Spacing.sm },
-  ringWrap: { alignItems: 'center', paddingVertical: Spacing.md },
-  chanceCard: { borderRadius: 14 },
-  chanceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  strip: { borderRadius: 14 },
-  eventRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 4,
+  scroll: {
+    padding: Spacing.md,
+    gap: Spacing.sm + 4,
+    paddingBottom: Spacing['2xl'] + 16,
   },
-  quickRow: { borderRadius: 16 },
-  quickButtons: { flexDirection: 'row', gap: 12, justifyContent: 'space-around' },
-  quickBtn: {
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    marginBottom: 4,
+  },
+  settingsBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  heroSection: {
+    alignItems: 'center',
+    paddingVertical: Spacing.lg,
+    position: 'relative',
+  },
+  ringGlow: {
+    position: 'absolute',
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+  },
+  ringGlowOuter: {
+    position: 'absolute',
+    width: 310,
+    height: 310,
+    borderRadius: 155,
+  },
+  miniStatsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  miniStat: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 14,
-    borderWidth: 1.5,
+    paddingHorizontal: 8,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    alignItems: 'center',
+    ...Shadow.sm,
+  },
+  chanceCard: {
+    borderRadius: Radius.xl,
+  },
+  chanceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
+  chanceBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: Radius.full,
+  },
+  sectionCard: {
+    borderRadius: Radius.xl,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  upcomingRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  upcomingCard: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+  },
+  quickButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  quickBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  quickBtnIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   insightCard: {
-    borderRadius: 16,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
     borderLeftWidth: 4,
-    borderLeftColor: Colors.gold,
+    padding: Spacing.md,
+    ...Shadow.sm,
   },
 });

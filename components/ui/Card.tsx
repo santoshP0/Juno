@@ -20,7 +20,7 @@ export function Card({ children, style, padding = Spacing.md, shadow = 'sm' }: C
         {
           backgroundColor: colors.surface,
           padding,
-          borderColor: colors.borderLight,
+          borderColor: colors.border,
         },
         shadow !== 'none' && Shadow[shadow],
         style,

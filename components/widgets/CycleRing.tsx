@@ -6,7 +6,7 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { Typography } from '../ui/Typography';
 import { Colors } from '../../constants/colors';
 import { useColors } from '../../hooks/useTheme';
@@ -22,11 +22,11 @@ interface CycleRingProps {
   size?: number;
 }
 
-const PHASE_COLORS: Record<CyclePhase, string> = {
-  menstrual: Colors.dustyRose,   // hot pink
-  follicular: Colors.sage,       // lavender
-  ovulation: Colors.success,     // mint/emerald
-  luteal: Colors.gold,           // fuchsia
+const PHASE_COLORS: Record<CyclePhase, [string, string]> = {
+  menstrual:  ['#FF2D78', '#FF80AB'],
+  follicular: ['#A78BFA', '#C4B5FD'],
+  ovulation:  ['#34D399', '#6EE7B7'],
+  luteal:     ['#F472B6', '#FBCFE8'],
 };
 
 const PHASE_LABELS: Record<CyclePhase, string> = {
@@ -44,7 +44,7 @@ export function CycleRing({
   size = 220,
 }: CycleRingProps) {
   const colors = useColors();
-  const strokeWidth = 14;
+  const strokeWidth = 16;
   const radius = (size - strokeWidth * 2) / 2;
   const circumference = 2 * Math.PI * radius;
   const center = size / 2;
@@ -54,7 +54,7 @@ export function CycleRing({
 
   useEffect(() => {
     progress.value = withTiming(targetProgress, {
-      duration: 1200,
+      duration: 1400,
       easing: Easing.out(Easing.cubic),
     });
   }, [targetProgress]);
@@ -63,12 +63,20 @@ export function CycleRing({
     strokeDashoffset: circumference * (1 - progress.value),
   }));
 
-  const phaseColor = PHASE_COLORS[phase];
+  const [colorStart, colorEnd] = PHASE_COLORS[phase];
+  const gradientId = `phase-gradient-${phase}`;
 
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={size} height={size}>
-        {/* Track */}
+        <Defs>
+          <LinearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor={colorStart} />
+            <Stop offset="100%" stopColor={colorEnd} />
+          </LinearGradient>
+        </Defs>
+
+        {/* Track ring */}
         <Circle
           cx={center}
           cy={center}
@@ -77,13 +85,29 @@ export function CycleRing({
           stroke={colors.border}
           strokeWidth={strokeWidth}
         />
-        {/* Progress */}
+
+        {/* Glow ring (wide, low opacity) */}
         <AnimatedCircle
           cx={center}
           cy={center}
           r={radius}
           fill="none"
-          stroke={phaseColor}
+          stroke={colorStart}
+          strokeWidth={strokeWidth + 10}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          animatedProps={animatedProps}
+          transform={`rotate(-90 ${center} ${center})`}
+          opacity={0.15}
+        />
+
+        {/* Main progress ring */}
+        <AnimatedCircle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          stroke={`url(#${gradientId})`}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -94,23 +118,23 @@ export function CycleRing({
 
       {/* Center content */}
       <View style={[StyleSheet.absoluteFillObject, styles.center]}>
-        <Typography variant="caption" color={colors.textSecondary} align="center">
+        <Typography variant="caption" color={colors.textTertiary} align="center">
           Day
         </Typography>
         <Typography
           variant="h1"
           align="center"
-          color={phaseColor}
-          style={{ lineHeight: 48 }}
+          color={colorStart}
+          style={{ lineHeight: 52, fontWeight: '800' }}
         >
           {currentDay}
         </Typography>
-        <View style={[styles.phaseBadge, { backgroundColor: phaseColor + '22' }]}>
+        <View style={[styles.phaseBadge, { backgroundColor: colorStart + '20' }]}>
           <Typography
             variant="caption"
-            color={phaseColor}
+            color={colorStart}
             align="center"
-            style={{ fontWeight: '600' }}
+            style={{ fontWeight: '700' }}
           >
             {PHASE_LABELS[phase]}
           </Typography>
@@ -119,7 +143,7 @@ export function CycleRing({
           variant="caption"
           color={colors.textTertiary}
           align="center"
-          style={{ marginTop: 4 }}
+          style={{ marginTop: 6 }}
         >
           {daysUntilPeriod > 0
             ? `Period in ${daysUntilPeriod}d`
@@ -138,9 +162,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   phaseBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
     borderRadius: 20,
-    marginTop: 4,
+    marginTop: 6,
   },
 });

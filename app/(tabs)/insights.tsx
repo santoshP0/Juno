@@ -154,11 +154,11 @@ export default function InsightsScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Header */}
         <View style={styles.header}>
-          <Typography variant="h3">Insights</Typography>
+          <Typography variant="h3" style={{ fontWeight: '800' }}>Insights</Typography>
         </View>
 
         {/* Time range selector */}
-        <View style={styles.rangeRow}>
+        <View style={[styles.rangeRow, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}>
           {RANGES.map((r) => (
             <TouchableOpacity
               key={r.key}
@@ -166,17 +166,14 @@ export default function InsightsScreen() {
               style={[
                 styles.rangeBtn,
                 {
-                  backgroundColor:
-                    range === r.key ? Colors.dustyRose : colors.surfaceSecondary,
-                  borderColor:
-                    range === r.key ? Colors.dustyRose : colors.border,
+                  backgroundColor: range === r.key ? Colors.dustyRose : 'transparent',
                 },
               ]}
             >
               <Typography
                 variant="caption"
                 color={range === r.key ? '#fff' : colors.textSecondary}
-                style={{ fontWeight: '600' }}
+                style={{ fontWeight: '700' }}
               >
                 {r.label}
               </Typography>
@@ -347,12 +344,19 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { padding: Spacing.md, gap: Spacing.md, paddingBottom: Spacing['2xl'] },
   header: { paddingVertical: Spacing.sm },
-  rangeRow: { flexDirection: 'row', gap: 8 },
-  rangeBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  rangeRow: {
+    flexDirection: 'row',
     borderRadius: Radius.full,
-    borderWidth: 1.5,
+    borderWidth: 1,
+    padding: 3,
+    gap: 2,
+  },
+  rangeBtn: {
+    flex: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: Radius.full,
+    alignItems: 'center',
   },
   statsRow: { flexDirection: 'row', gap: Spacing.sm },
 });

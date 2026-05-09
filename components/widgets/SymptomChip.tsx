@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
+import { TouchableOpacity, StyleSheet, ViewStyle, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '../ui/Typography';
 import { useColors } from '../../hooks/useTheme';
@@ -28,16 +28,19 @@ export function SymptomChip({ label, selected, onToggle, style }: SymptomChipPro
       style={[
         styles.chip,
         {
-          backgroundColor: selected ? Colors.dustyRose + '33' : colors.surfaceSecondary,
+          backgroundColor: selected ? Colors.dustyRose + '20' : colors.surfaceSecondary,
           borderColor: selected ? Colors.dustyRose : colors.border,
         },
         style,
       ]}
     >
+      {selected && (
+        <View style={[styles.dot, { backgroundColor: Colors.dustyRose }]} />
+      )}
       <Typography
         variant="label"
-        color={selected ? Colors.dustyRoseDark : colors.textSecondary}
-        style={styles.label}
+        color={selected ? Colors.dustyRose : colors.textSecondary}
+        style={{ fontWeight: selected ? '700' : '500' }}
       >
         {label}
       </Typography>
@@ -47,13 +50,18 @@ export function SymptomChip({ label, selected, onToggle, style }: SymptomChipPro
 
 const styles = StyleSheet.create({
   chip: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm - 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: Radius.full,
     borderWidth: 1.5,
-    margin: 4,
+    margin: 3,
   },
-  label: {
-    textAlign: 'center',
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
 });
