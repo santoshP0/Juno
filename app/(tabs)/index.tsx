@@ -26,6 +26,7 @@ import { useUserStore } from '../../stores/userStore';
 
 import { Colors } from '../../constants/colors';
 import { Spacing, Shadow, Radius } from '../../constants/theme';
+import { useWidgetSync } from '../../hooks/useWidgetSync';
 import { DAILY_INSIGHTS_BY_PHASE } from '../../constants/content';
 import { formatDate, todayStr } from '../../lib/utils/date';
 import { formatDaysUntil } from '../../lib/utils/formatting';
@@ -165,6 +166,9 @@ export default function HomeScreen() {
   const { addCycle } = useCycleStore();
   const profile = useUserStore((s) => s.profile);
   const [refreshing, setRefreshing] = React.useState(false);
+
+  // Keep Android home screen widget in sync
+  useWidgetSync(prediction ?? null);
 
   const dailyInsight = useMemo(() => {
     if (!prediction) return '';
