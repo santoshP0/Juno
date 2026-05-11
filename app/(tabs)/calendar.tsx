@@ -1,5 +1,5 @@
-import React, { useMemo, useCallback, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useMemo, useCallback, useState, useEffect } from 'react';
+import { View, StyleSheet, TouchableOpacity, ScrollView, AppState, AppStateStatus } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar } from 'react-native-calendars';
@@ -70,7 +70,16 @@ export default function CalendarScreen() {
   const { cycles, logs, prediction } = useCycleStore();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showLegend, setShowLegend] = useState(false);
-  const today = format(new Date(), 'yyyy-MM-dd');
+  const [today, setToday] = useState(format(new Date(), 'yyyy-MM-dd'));
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'active') {
+        setToday(format(new Date(), 'yyyy-MM-dd'));
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   const calMap = useMemo(() => {
     if (!prediction) return {};

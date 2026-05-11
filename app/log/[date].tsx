@@ -331,25 +331,28 @@ export default function LogScreen() {
       return;
     }
     setSaving(true);
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await saveLog({
-      date,
-      flow,
-      symptoms,
-      moods,
-      energyLevel,
-      sleepHours,
-      sleepQuality: sleepQuality as DailyLog['sleepQuality'],
-      sex,
-      discharge,
-      cervicalPosition: null,
-      bbt,
-      weight,
-      waterIntake,
-      notes: notes.trim() || null,
-    });
-    setSaving(false);
-    router.back();
+    try {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await saveLog({
+        date,
+        flow,
+        symptoms,
+        moods,
+        energyLevel,
+        sleepHours,
+        sleepQuality: sleepQuality as DailyLog['sleepQuality'],
+        sex,
+        discharge,
+        cervicalPosition: null,
+        bbt,
+        weight,
+        waterIntake,
+        notes: notes.trim() || null,
+      });
+      router.back();
+    } finally {
+      setSaving(false);
+    }
   }, [date, flow, symptoms, moods, energyLevel, sleepHours, sleepQuality, sex, discharge, bbt, weight, waterIntake, notes, saveLog, router]);
 
   const handleDelete = useCallback(() => {

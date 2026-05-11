@@ -95,23 +95,27 @@ export function useCycle() {
   // cycle record that changes predictions, then re-schedules notifications.
   const logPeriodStart = useCallback(
     async (date = todayStr()) => {
-      const id = await insertCycle(db, date);
-      addCycle({
-        id,
-        startDate: date,
-        endDate: null,
-        length: null,
-        periodLength: null,
-        notes: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-      await reload();
+      try {
+        const id = await insertCycle(db, date);
+        addCycle({
+          id,
+          startDate: date,
+          endDate: null,
+          length: null,
+          periodLength: null,
+          notes: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+        await reload();
 
-      // Re-schedule notifications now that we have new predictions
-      const pred = useCycleStore.getState().prediction;
-      if (pred) {
-        scheduleAllNotifications(pred, notifications).catch(() => {});
+        // Re-schedule notifications now that we have new predictions
+        const pred = useCycleStore.getState().prediction;
+        if (pred) {
+          scheduleAllNotifications(pred, notifications).catch(() => {});
+        }
+      } catch (e) {
+        setError('Failed to log period start. Please try again.');
       }
     },
     [db, addCycle, reload, notifications]

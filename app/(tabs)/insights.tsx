@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LineChart, BarChart } from 'react-native-gifted-charts';
 import { subMonths, parseISO, isAfter, format } from 'date-fns';
@@ -34,6 +34,8 @@ export default function InsightsScreen() {
   const colors = useColors();
   const { cycles, logs } = useCycleStore();
   const [range, setRange] = useState<InsightTimeRange>('6m');
+  const { width: screenWidth } = useWindowDimensions();
+  const chartWidth = screenWidth - 64;
 
   const cutoff = useMemo(() => rangeCutoff(range), [range]);
 
@@ -237,7 +239,7 @@ export default function InsightsScreen() {
                   rulesColor={colors.border}
                   backgroundColor="transparent"
                   isAnimated
-                  width={300}
+                  width={chartWidth}
                 />
               </Card>
             )}
@@ -263,7 +265,7 @@ export default function InsightsScreen() {
                   xAxisLabelTextStyle={{ color: colors.textTertiary, fontSize: 10 }}
                   backgroundColor="transparent"
                   isAnimated
-                  width={280}
+                  width={chartWidth}
                 />
               </Card>
             )}
@@ -287,7 +289,7 @@ export default function InsightsScreen() {
                   backgroundColor="transparent"
                   isAnimated
                   curved
-                  width={300}
+                  width={chartWidth}
                 />
               </Card>
             )}
@@ -310,7 +312,7 @@ export default function InsightsScreen() {
                   backgroundColor="transparent"
                   isAnimated
                   curved
-                  width={300}
+                  width={chartWidth}
                 />
               </Card>
             )}

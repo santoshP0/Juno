@@ -1,10 +1,12 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
-  ScrollView,
+  FlatList,
   TextInput,
   StyleSheet,
   TouchableOpacity,
+  ScrollView,
+  ListRenderItemInfo,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -163,97 +165,25 @@ export default function ArticlesScreen() {
     return result;
   }, [search, selectedCategory]);
 
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        stickyHeaderIndices={[0]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* ── Sticky header ─────────────────────────────── */}
-        <View style={[styles.stickyHeader, { backgroundColor: colors.background }]}>
-          <Typography variant="h3" style={{ marginBottom: Spacing.sm, fontWeight: '800' }}>
-            Learn
-          </Typography>
+  const renderItem = useCallback(
+    ({ item }: ListRenderItemInfo<Article>) => (
+      <ArticleCard
+        article={item}
+        bookmarked={bookmarks.includes(item.id)}
+        onPress={() => router.push(`/article/${item.id}`)}
+        onToggleBookmark={() => handleToggleBookmark(item.id)}
+      />
+    ),
+    [bookmarks, router, handleToggleBookmark]
+  );
 
-          {/* Search bar */}
-          <View
-            style={[
-              styles.searchBar,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-              },
-              Shadow.sm,
-            ]}
-          >
-            <Search size={18} color={Colors.dustyRose} />
-            <TextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Search articles..."
-              placeholderTextColor={colors.textTertiary}
-              style={{ flex: 1, color: colors.text, fontSize: 15, marginLeft: 10 }}
-            />
-          </View>
-
-          {/* Category chips */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.catScroll}
-            contentContainerStyle={styles.catContent}
-          >
-            <TouchableOpacity
-              onPress={() => setSelectedCategory(null)}
-              style={[
-                styles.catChip,
-                {
-                  backgroundColor: !selectedCategory ? Colors.dustyRose : colors.surface,
-                  borderColor: !selectedCategory ? Colors.dustyRose : colors.border,
-                },
-                !selectedCategory ? Shadow.sm : undefined,
-              ]}
-            >
-              <Typography
-                variant="caption"
-                color={!selectedCategory ? '#fff' : colors.textSecondary}
-                style={{ fontWeight: '700' }}
-              >
-                All
-              </Typography>
-            </TouchableOpacity>
-            {ARTICLE_CATEGORIES.map((cat) => {
-              const active = selectedCategory === cat.key;
-              const catColor = CATEGORY_COLORS[cat.key] ?? Colors.dustyRose;
-              return (
-                <TouchableOpacity
-                  key={cat.key}
-                  onPress={() => setSelectedCategory(cat.key)}
-                  style={[
-                    styles.catChip,
-                    {
-                      backgroundColor: active ? catColor : colors.surface,
-                      borderColor: active ? catColor : colors.border,
-                    },
-                    active ? Shadow.sm : undefined,
-                  ]}
-                >
-                  <Typography
-                    variant="caption"
-                    color={active ? '#fff' : colors.textSecondary}
-                    style={{ fontWeight: '700' }}
-                  >
-                    {cat.label}
-                  </Typography>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-
-        {/* ── Bookmarks section ─────────────────────────── */}
-        {!selectedCategory && !search && bookmarks.length > 0 && (
+  // Shown above the virtualized list when no search/filter is active
+  const listHeader = useMemo(() => {
+    if (selectedCategory || search.trim()) return null;
+    const bookmarkedArticles = ARTICLES.filter((a) => bookmarks.includes(a.id));
+    return (
+      <>
+        {bookmarkedArticles.length > 0 && (
           <View style={styles.section}>
             <Typography
               variant="label"
@@ -262,7 +192,7 @@ export default function ArticlesScreen() {
             >
               Bookmarked
             </Typography>
-            {ARTICLES.filter((a) => bookmarks.includes(a.id)).map((article) => (
+            {bookmarkedArticles.map((article) => (
               <ArticleCard
                 key={article.id}
                 article={article}
@@ -273,48 +203,128 @@ export default function ArticlesScreen() {
             ))}
           </View>
         )}
+        <Typography
+          variant="label"
+          color={colors.textSecondary}
+          style={{ marginBottom: Spacing.sm, marginHorizontal: Spacing.md, fontWeight: '700' }}
+        >
+          All articles · {ARTICLES.length}
+        </Typography>
+      </>
+    );
+  }, [selectedCategory, search, bookmarks, colors.textSecondary, router, handleToggleBookmark]);
 
-        {/* ── Article list ──────────────────────────────── */}
-        {!selectedCategory && !search && (
-          <Typography
-            variant="label"
-            color={colors.textSecondary}
-            style={{ marginBottom: Spacing.sm, marginHorizontal: Spacing.md, fontWeight: '700' }}
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Fixed search + category filter header */}
+      <View style={[styles.stickyHeader, { backgroundColor: colors.background }]}>
+        <Typography variant="h3" style={{ marginBottom: Spacing.sm, fontWeight: '800' }}>
+          Learn
+        </Typography>
+
+        <View
+          style={[
+            styles.searchBar,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+            Shadow.sm,
+          ]}
+        >
+          <Search size={18} color={Colors.dustyRose} />
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search articles..."
+            placeholderTextColor={colors.textTertiary}
+            style={{ flex: 1, color: colors.text, fontSize: 15, marginLeft: 10 }}
+          />
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.catScroll}
+          contentContainerStyle={styles.catContent}
+        >
+          <TouchableOpacity
+            onPress={() => setSelectedCategory(null)}
+            style={[
+              styles.catChip,
+              {
+                backgroundColor: !selectedCategory ? Colors.dustyRose : colors.surface,
+                borderColor: !selectedCategory ? Colors.dustyRose : colors.border,
+              },
+              !selectedCategory ? Shadow.sm : undefined,
+            ]}
           >
-            All articles · {ARTICLES.length}
-          </Typography>
-        )}
+            <Typography
+              variant="caption"
+              color={!selectedCategory ? '#fff' : colors.textSecondary}
+              style={{ fontWeight: '700' }}
+            >
+              All
+            </Typography>
+          </TouchableOpacity>
+          {ARTICLE_CATEGORIES.map((cat) => {
+            const active = selectedCategory === cat.key;
+            const catColor = CATEGORY_COLORS[cat.key] ?? Colors.dustyRose;
+            return (
+              <TouchableOpacity
+                key={cat.key}
+                onPress={() => setSelectedCategory(cat.key)}
+                style={[
+                  styles.catChip,
+                  {
+                    backgroundColor: active ? catColor : colors.surface,
+                    borderColor: active ? catColor : colors.border,
+                  },
+                  active ? Shadow.sm : undefined,
+                ]}
+              >
+                <Typography
+                  variant="caption"
+                  color={active ? '#fff' : colors.textSecondary}
+                  style={{ fontWeight: '700' }}
+                >
+                  {cat.label}
+                </Typography>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
 
-        {filtered.length === 0 ? (
+      <FlatList
+        data={filtered}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={
           <EmptyState
             emoji="🔍"
             title="No articles found"
             description="Try a different search or category."
           />
-        ) : (
-          filtered.map((article) => (
-            <ArticleCard
-              key={article.id}
-              article={article}
-              bookmarked={bookmarks.includes(article.id)}
-              onPress={() => router.push(`/article/${article.id}`)}
-              onToggleBookmark={() => handleToggleBookmark(article.id)}
-            />
-          ))
-        )}
-      </ScrollView>
+        }
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scroll: { paddingBottom: Spacing['2xl'] },
   stickyHeader: {
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.sm,
     paddingBottom: Spacing.sm,
   },
+  scroll: { paddingBottom: Spacing['2xl'] },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -111,84 +111,88 @@ export async function importBackup(
       return { success: false, error: 'Invalid backup file format.' };
     }
 
-    // Wipe existing data
-    await deleteAllData(db);
-    await initializeDatabase(db);
-
-    // Re-insert user
-    if (backup.user) {
-      const u = backup.user as Record<string, unknown>;
-      await db.runAsync(
-        `INSERT OR REPLACE INTO users
-           (id, name, birth_year, height, weight, height_unit, weight_unit, temp_unit,
-            avg_cycle_length, avg_period_length, goal, mode, created_at)
-         VALUES (1,?,?,?,?,?,?,?,?,?,?,?,?)`,
-        u.name as string,
-        u.birth_year as number,
-        u.height as number,
-        u.weight as number,
-        (u.height_unit as string) ?? 'cm',
-        (u.weight_unit as string) ?? 'kg',
-        (u.temp_unit as string) ?? 'celsius',
-        (u.avg_cycle_length as number) ?? 28,
-        (u.avg_period_length as number) ?? 5,
-        (u.goal as string) ?? 'track',
-        (u.mode as string) ?? 'tracking',
-        u.created_at as string
-      );
+    // Validate required arrays before touching the database
+    if (!Array.isArray(backup.cycles) || !Array.isArray(backup.dailyLogs)) {
+      return { success: false, error: 'Backup file is missing required data arrays.' };
     }
 
-    // Re-insert cycles
-    for (const c of backup.cycles as Record<string, unknown>[]) {
-      await db.runAsync(
-        `INSERT OR IGNORE INTO cycles (id, start_date, end_date, length, period_length, notes, created_at, updated_at)
-         VALUES (?,?,?,?,?,?,?,?)`,
-        c.id as number,
-        c.start_date as string,
-        c.end_date as string,
-        c.length as number,
-        c.period_length as number,
-        c.notes as string,
-        c.created_at as string,
-        c.updated_at as string
-      );
-    }
+    // All DB writes run inside a single transaction so a mid-import failure
+    // leaves the database untouched (rollback) rather than partially wiped.
+    await db.withTransactionAsync(async () => {
+      await deleteAllData(db);
+      await initializeDatabase(db);
 
-    // Re-insert daily logs
-    for (const l of backup.dailyLogs as Record<string, unknown>[]) {
-      await db.runAsync(
-        `INSERT OR IGNORE INTO daily_logs
-           (id, date, flow, symptoms, moods, energy_level, sleep_hours, sleep_quality,
-            sex, discharge, cervical_position, bbt, weight, water_intake, notes, created_at, updated_at)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-        l.id as number,
-        l.date as string,
-        l.flow as string,
-        l.symptoms as string,
-        l.moods as string,
-        l.energy_level as string,
-        l.sleep_hours as number,
-        l.sleep_quality as number,
-        l.sex as string,
-        l.discharge as string,
-        l.cervical_position as string,
-        l.bbt as number,
-        l.weight as number,
-        l.water_intake as number,
-        l.notes as string,
-        l.created_at as string,
-        l.updated_at as string
-      );
-    }
+      if (backup.user) {
+        const u = backup.user as Record<string, unknown>;
+        await db.runAsync(
+          `INSERT OR REPLACE INTO users
+             (id, name, birth_year, height, weight, height_unit, weight_unit, temp_unit,
+              avg_cycle_length, avg_period_length, goal, mode, created_at)
+           VALUES (1,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          u.name as string,
+          u.birth_year as number,
+          u.height as number,
+          u.weight as number,
+          (u.height_unit as string) ?? 'cm',
+          (u.weight_unit as string) ?? 'kg',
+          (u.temp_unit as string) ?? 'celsius',
+          (u.avg_cycle_length as number) ?? 28,
+          (u.avg_period_length as number) ?? 5,
+          (u.goal as string) ?? 'track',
+          (u.mode as string) ?? 'tracking',
+          u.created_at as string
+        );
+      }
 
-    // Re-insert bookmarks
-    for (const b of backup.bookmarks as Record<string, unknown>[]) {
-      await db.runAsync(
-        'INSERT OR IGNORE INTO bookmarks (article_id, created_at) VALUES (?,?)',
-        b.article_id as string,
-        b.created_at as string
-      );
-    }
+      for (const c of backup.cycles as Record<string, unknown>[]) {
+        await db.runAsync(
+          `INSERT OR IGNORE INTO cycles (id, start_date, end_date, length, period_length, notes, created_at, updated_at)
+           VALUES (?,?,?,?,?,?,?,?)`,
+          c.id as number,
+          c.start_date as string,
+          c.end_date as string,
+          c.length as number,
+          c.period_length as number,
+          c.notes as string,
+          c.created_at as string,
+          c.updated_at as string
+        );
+      }
+
+      for (const l of backup.dailyLogs as Record<string, unknown>[]) {
+        await db.runAsync(
+          `INSERT OR IGNORE INTO daily_logs
+             (id, date, flow, symptoms, moods, energy_level, sleep_hours, sleep_quality,
+              sex, discharge, cervical_position, bbt, weight, water_intake, notes, created_at, updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          l.id as number,
+          l.date as string,
+          l.flow as string,
+          l.symptoms as string,
+          l.moods as string,
+          l.energy_level as string,
+          l.sleep_hours as number,
+          l.sleep_quality as number,
+          l.sex as string,
+          l.discharge as string,
+          l.cervical_position as string,
+          l.bbt as number,
+          l.weight as number,
+          l.water_intake as number,
+          l.notes as string,
+          l.created_at as string,
+          l.updated_at as string
+        );
+      }
+
+      for (const b of (backup.bookmarks ?? []) as Record<string, unknown>[]) {
+        await db.runAsync(
+          'INSERT OR IGNORE INTO bookmarks (article_id, created_at) VALUES (?,?)',
+          b.article_id as string,
+          b.created_at as string
+        );
+      }
+    });
 
     return { success: true };
   } catch (err) {

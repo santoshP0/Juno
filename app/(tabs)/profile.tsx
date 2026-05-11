@@ -147,7 +147,7 @@ export default function ProfileScreen() {
             subtitle="Name, cycle defaults, mode"
             onPress={navigate('/settings/')}
           />
-          <View style={styles.separator} />
+          <View style={[styles.separator, { backgroundColor: colors.border }]} />
           <MenuItem
             icon={Bell}
             iconColor={Colors.gold}
@@ -155,7 +155,7 @@ export default function ProfileScreen() {
             subtitle="Period reminders, ovulation alerts"
             onPress={navigate('/settings/notifications')}
           />
-          <View style={styles.separator} />
+          <View style={[styles.separator, { backgroundColor: colors.border }]} />
           <MenuItem
             icon={Shield}
             iconColor={Colors.sage}
@@ -163,7 +163,7 @@ export default function ProfileScreen() {
             subtitle="PIN, biometric, app lock"
             onPress={navigate('/settings/security')}
           />
-          <View style={styles.separator} />
+          <View style={[styles.separator, { backgroundColor: colors.border }]} />
           <MenuItem
             icon={HardDrive}
             iconColor={Colors.plum}
@@ -171,7 +171,7 @@ export default function ProfileScreen() {
             subtitle="Export or import your data"
             onPress={navigate('/settings/backup')}
           />
-          <View style={styles.separator} />
+          <View style={[styles.separator, { backgroundColor: colors.border }]} />
           <MenuItem
             icon={Info}
             iconColor={Colors.textSecondary as string}
@@ -194,7 +194,7 @@ export default function ProfileScreen() {
                 Avg cycle (days)
               </Typography>
             </View>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
             <View style={styles.statItem}>
               <Typography variant="h3" color={Colors.sage}>
                 {profile?.avgPeriodLength ?? 5}
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   menuText: { flex: 1 },
-  separator: { height: 1, backgroundColor: '#00000008', marginLeft: 66 },
+  separator: { height: 1, marginLeft: 66 },
   themeRow: { flexDirection: 'row', gap: 10 },
   themeBtn: {
     flex: 1,
@@ -264,5 +264,5 @@ const styles = StyleSheet.create({
   },
   statsRow: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' },
   statItem: { alignItems: 'center', flex: 1, gap: 4 },
-  statDivider: { width: 1, height: 40, backgroundColor: '#00000010' },
+  statDivider: { width: 1, height: 40 },
 });
