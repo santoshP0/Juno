@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, AppState, AppStateStatus } from 'react-native';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { View, StyleSheet, AppState, AppStateStatus, ActivityIndicator } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
 import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -11,44 +11,47 @@ import '../global.css';
 
 import { initializeDatabase } from '../lib/db/schema';
 import { runMigrations } from '../lib/db/migrations';
+import { setupNotificationChannels } from '../lib/notifications';
 import { useSettingsStore } from '../stores/settingsStore';
-import { useColors } from '../hooks/useTheme';
+import { useTheme, useColors } from '../hooks/useTheme';
 import { useAppLock, authenticateWithBiometric } from '../hooks/useAppLock';
+import { Colors } from '../constants/colors';
 
 SplashScreen.preventAutoHideAsync();
 
 function AppGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const segments = useSegments();
   const colors = useColors();
   const { onboardingComplete, pinEnabled, biometricEnabled } = useSettingsStore();
-  const { isLocked, lock, unlock, checkAutoLock, resetTimer } = useAppLock();
+  const { isLocked, unlock, checkAutoLock, resetTimer } = useAppLock();
   const [appReady, setAppReady] = useState(false);
 
-  // Initialize: route to onboarding or check lock
   useEffect(() => {
     const init = async () => {
-      if (!onboardingComplete) {
-        router.replace('/(onboarding)/welcome');
-      } else if (pinEnabled) {
-        if (biometricEnabled) {
-          const ok = await authenticateWithBiometric();
-          if (ok) {
-            unlock();
+      try {
+        if (!onboardingComplete) {
+          router.replace('/(onboarding)/welcome');
+        } else if (pinEnabled) {
+          if (biometricEnabled) {
+            const ok = await authenticateWithBiometric();
+            if (ok) {
+              unlock();
+            } else {
+              router.replace('/lock');
+            }
           } else {
             router.replace('/lock');
           }
-        } else {
-          router.replace('/lock');
         }
+      } finally {
+        setAppReady(true);
+        await SplashScreen.hideAsync();
       }
-      setAppReady(true);
-      await SplashScreen.hideAsync();
     };
     init();
   }, []);
 
-  // Auto-lock on app background
+  // Re-check lock when app comes to foreground
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
       if (state === 'active') {
@@ -61,7 +64,7 @@ function AppGuard({ children }: { children: React.ReactNode }) {
     return () => sub.remove();
   }, [isLocked, checkAutoLock, resetTimer]);
 
-  // Notification tap handler
+  // Open home tab when user taps a notification
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener(() => {
       router.push('/(tabs)/');
@@ -69,7 +72,13 @@ function AppGuard({ children }: { children: React.ReactNode }) {
     return () => sub.remove();
   }, []);
 
-  if (!appReady) return null;
+  if (!appReady) {
+    return (
+      <View style={[styles.loading, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="small" color={Colors.dustyRose} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -81,10 +90,12 @@ function AppGuard({ children }: { children: React.ReactNode }) {
 async function initDB(db: import('expo-sqlite').SQLiteDatabase) {
   await initializeDatabase(db);
   await runMigrations(db);
+  // Ensure Android notification channels exist after DB is ready
+  await setupNotificationChannels();
 }
 
 export default function RootLayout() {
-  const { isDark } = useColors() as { isDark: boolean };
+  const { isDark } = useTheme();
   const colors = useColors();
 
   return (
@@ -116,4 +127,9 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  loading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

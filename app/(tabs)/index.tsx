@@ -162,7 +162,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const colors = useColors();
   const db = useSQLiteContext();
-  const { prediction, reload, cycles } = useCycle();
+  const { prediction, reload, cycles, error: cycleError } = useCycle();
   const { addCycle } = useCycleStore();
   const profile = useUserStore((s) => s.profile);
   const [refreshing, setRefreshing] = React.useState(false);
@@ -228,6 +228,13 @@ export default function HomeScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
+        {/* ── DB error banner ─────────────────────────────── */}
+        {cycleError && (
+          <View style={[styles.errorBanner, { backgroundColor: Colors.error + '18', borderColor: Colors.error + '40' }]}>
+            <Typography variant="caption" color={Colors.error}>{cycleError}</Typography>
+          </View>
+        )}
+
         {/* ── Header ─────────────────────────────────────── */}
         <Animated.View entering={FadeInDown.delay(0).duration(500)} style={styles.header}>
           <View>
@@ -529,6 +536,11 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  errorBanner: {
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    padding: 12,
   },
   insightCard: {
     borderRadius: Radius.xl,

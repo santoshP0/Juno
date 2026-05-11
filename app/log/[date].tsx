@@ -215,6 +215,8 @@ function NumberInput({
   unit,
   placeholder,
   icon: Icon,
+  min,
+  max,
 }: {
   label: string;
   value: number | null;
@@ -222,15 +224,27 @@ function NumberInput({
   unit?: string;
   placeholder?: string;
   icon?: typeof Thermometer;
+  min?: number;
+  max?: number;
 }) {
   const colors = useColors();
+  const isOutOfRange = value !== null && min !== undefined && max !== undefined &&
+    (value < min || value > max);
   return (
     <View style={s.numRow}>
-      {Icon && <Icon size={18} color={colors.textTertiary} />}
-      <Typography variant="body2" style={{ flex: 1 }}>
-        {label}
-      </Typography>
-      <View style={[s.numInput, { borderColor: colors.border, backgroundColor: colors.surfaceSecondary }]}>
+      {Icon && <Icon size={18} color={isOutOfRange ? Colors.error : colors.textTertiary} />}
+      <View style={{ flex: 1 }}>
+        <Typography variant="body2">{label}</Typography>
+        {isOutOfRange && (
+          <Typography variant="caption" color={Colors.error}>
+            Valid range: {min}–{max} {unit}
+          </Typography>
+        )}
+      </View>
+      <View style={[s.numInput, {
+        borderColor: isOutOfRange ? Colors.error : colors.border,
+        backgroundColor: colors.surfaceSecondary,
+      }]}>
         <TextInput
           value={value !== null ? String(value) : ''}
           onChangeText={(t) => onChange(t ? parseFloat(t) || null : null)}
@@ -308,6 +322,14 @@ export default function LogScreen() {
   }, []);
 
   const handleSave = useCallback(async () => {
+    if (bbt !== null && (bbt < 35.0 || bbt > 42.0)) {
+      Alert.alert('Invalid BBT', 'Basal body temperature must be between 35.0 and 42.0 °C.');
+      return;
+    }
+    if (weight !== null && (weight < 20 || weight > 300)) {
+      Alert.alert('Invalid weight', 'Weight must be between 20 and 300 kg.');
+      return;
+    }
     setSaving(true);
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await saveLog({
@@ -468,6 +490,8 @@ export default function LogScreen() {
               onChange={setBbt}
               unit="°C"
               placeholder="36.5"
+              min={35.0}
+              max={42.0}
             />
             <View style={s.divider} />
             <NumberInput
@@ -477,6 +501,8 @@ export default function LogScreen() {
               onChange={setWeight}
               unit="kg"
               placeholder="60.0"
+              min={20}
+              max={300}
             />
             <View style={s.divider} />
             <WaterCounter value={waterIntake} onChange={setWaterIntake} />
