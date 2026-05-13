@@ -8,7 +8,7 @@ import { format, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns
 
 import { Typography } from '../../components/ui/Typography';
 import { Card } from '../../components/ui/Card';
-import { useColors } from '../../hooks/useTheme';
+import { useColors, useTheme } from '../../hooks/useTheme';
 import { useCycleStore } from '../../stores/cycleStore';
 import { Colors } from '../../constants/colors';
 import { Spacing, Radius } from '../../constants/theme';
@@ -66,6 +66,7 @@ const LEGEND = [
 
 export default function CalendarScreen() {
   const router = useRouter();
+  const { isDark } = useTheme();
   const colors = useColors();
   const { cycles, logs, prediction } = useCycleStore();
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -137,7 +138,7 @@ export default function CalendarScreen() {
         {/* Calendar */}
         <Card padding={8} style={styles.calCard}>
           <Calendar
-            key={format(currentMonth, 'yyyy-MM')}
+            key={`${format(currentMonth, 'yyyy-MM')}-${isDark ? 'dark' : 'light'}`}
             current={format(currentMonth, 'yyyy-MM-dd')}
             markedDates={markedDates}
             onDayPress={handleDayPress}
@@ -148,15 +149,22 @@ export default function CalendarScreen() {
               backgroundColor: 'transparent',
               calendarBackground: 'transparent',
               textSectionTitleColor: colors.textSecondary,
+              textSectionTitleDisabledColor: colors.textTertiary,
               dayTextColor: colors.text,
               todayTextColor: Colors.white,
               selectedDayTextColor: Colors.white,
               monthTextColor: colors.text,
-              arrowColor: Colors.dustyRose,
+              indicatorColor: colors.text,
+              textDisabledColor: colors.textTertiary,
               dotColor: Colors.sage,
               selectedDotColor: Colors.white,
+              arrowColor: Colors.dustyRose,
+              disabledArrowColor: colors.textTertiary,
               'stylesheet.calendar.header': {
                 header: { display: 'none' },
+                dayHeader: {
+                  color: colors.textSecondary,
+                }
               } as any,
             }}
           />
