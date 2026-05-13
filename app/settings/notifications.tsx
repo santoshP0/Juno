@@ -7,6 +7,8 @@ import {
   Switch,
   Alert,
   Linking,
+  AppState,
+  AppStateStatus,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -115,6 +117,13 @@ export default function NotificationsScreen() {
 
   useEffect(() => {
     getNotificationPermissionStatus().then(setPermStatus);
+    // Re-check when user returns from device Settings after granting permission
+    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'active') {
+        getNotificationPermissionStatus().then(setPermStatus);
+      }
+    });
+    return () => sub.remove();
   }, []);
 
   const update = useCallback(

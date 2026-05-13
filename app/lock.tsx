@@ -10,6 +10,7 @@ import {
   verifyPin,
   isBiometricAvailable,
   authenticateWithBiometric,
+  onAppUnlock,
 } from '../hooks/useAppLock';
 import { Colors } from '../constants/colors';
 
@@ -30,12 +31,16 @@ export default function LockScreen() {
   const tryBiometric = async () => {
     if (!biometricEnabled) return;
     const ok = await authenticateWithBiometric();
-    if (ok) router.replace('/(tabs)/');
+    if (ok) {
+      onAppUnlock();
+      router.replace('/(tabs)/');
+    }
   };
 
   const handlePinComplete = async (pin: string) => {
     const ok = await verifyPin(pin);
     if (ok) {
+      onAppUnlock();
       setError('');
       router.replace('/(tabs)/');
     } else {

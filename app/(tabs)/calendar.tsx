@@ -137,6 +137,7 @@ export default function CalendarScreen() {
         {/* Calendar */}
         <Card padding={8} style={styles.calCard}>
           <Calendar
+            key={format(currentMonth, 'yyyy-MM')}
             current={format(currentMonth, 'yyyy-MM-dd')}
             markedDates={markedDates}
             onDayPress={handleDayPress}

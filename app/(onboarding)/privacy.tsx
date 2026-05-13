@@ -1,15 +1,20 @@
-import React, { useCallback } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Linking, AppState, AppStateStatus } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { Bell, BellOff } from 'lucide-react-native';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { useColors } from '../../hooks/useTheme';
 import { useSettingsStore } from '../../stores/settingsStore';
+import {
+  requestNotificationPermission,
+  getNotificationPermissionStatus,
+} from '../../lib/notifications';
 import { Colors } from '../../constants/colors';
-import { Spacing } from '../../constants/theme';
+import { Spacing, Radius } from '../../constants/theme';
 
 const PRIVACY_POINTS = [
   { emoji: '📵', text: 'No internet connection required — ever.' },
@@ -24,6 +29,27 @@ export default function PrivacyScreen() {
   const router = useRouter();
   const colors = useColors();
   const { setOnboardingComplete } = useSettingsStore();
+  const [permStatus, setPermStatus] = useState<'granted' | 'denied' | 'undetermined' | null>(null);
+  const [requesting, setRequesting] = useState(false);
+
+  useEffect(() => {
+    getNotificationPermissionStatus().then(setPermStatus);
+    const sub = AppState.addEventListener('change', (s: AppStateStatus) => {
+      if (s === 'active') getNotificationPermissionStatus().then(setPermStatus);
+    });
+    return () => sub.remove();
+  }, []);
+
+  const handleRequestNotifications = useCallback(async () => {
+    if (permStatus === 'denied') {
+      Linking.openSettings();
+      return;
+    }
+    setRequesting(true);
+    const granted = await requestNotificationPermission();
+    setPermStatus(granted ? 'granted' : 'denied');
+    setRequesting(false);
+  }, [permStatus]);
 
   const handleFinish = useCallback(async () => {
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -61,15 +87,68 @@ export default function PrivacyScreen() {
             "Your body data belongs to you, and only you."
           </Typography>
         </View>
+
+        {/* Notification permission */}
+        <TouchableOpacity
+          onPress={permStatus !== 'granted' ? handleRequestNotifications : undefined}
+          activeOpacity={permStatus === 'granted' ? 1 : 0.8}
+          style={[
+            styles.notifCard,
+            {
+              backgroundColor:
+                permStatus === 'granted'
+                  ? Colors.success + '18'
+                  : Colors.dustyRose + '14',
+              borderColor:
+                permStatus === 'granted'
+                  ? Colors.success + '50'
+                  : Colors.dustyRose + '50',
+            },
+          ]}
+        >
+          {permStatus === 'granted' ? (
+            <Bell size={20} color={Colors.success} />
+          ) : (
+            <BellOff size={20} color={Colors.dustyRose} />
+          )}
+          <View style={{ flex: 1 }}>
+            <Typography
+              variant="label"
+              color={permStatus === 'granted' ? Colors.success : Colors.dustyRose}
+              style={{ fontWeight: '700' }}
+            >
+              {permStatus === 'granted'
+                ? 'Notifications enabled ✓'
+                : 'Enable period reminders'}
+            </Typography>
+            <Typography
+              variant="caption"
+              color={colors.textSecondary}
+              style={{ marginTop: 2 }}
+            >
+              {permStatus === 'granted'
+                ? 'You\'ll get reminders before your period and on fertile days.'
+                : 'Tap to allow — get alerts before your period and during your fertile window.'}
+            </Typography>
+          </View>
+        </TouchableOpacity>
       </ScrollView>
 
       <View style={styles.footer}>
         <Button
           label="I understand — let's go!"
           onPress={handleFinish}
+          loading={requesting}
           fullWidth
           size="lg"
         />
+        {permStatus !== 'granted' && (
+          <TouchableOpacity onPress={handleFinish} style={styles.skipNotif}>
+            <Typography variant="caption" color={colors.textTertiary} align="center">
+              Skip notifications
+            </Typography>
+          </TouchableOpacity>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -96,5 +175,16 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     width: '100%',
   },
-  footer: { padding: Spacing.xl, paddingTop: 0 },
+  notifCard: {
+    marginTop: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    padding: Spacing.md,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    width: '100%',
+  },
+  footer: { padding: Spacing.xl, paddingTop: 0, gap: 4 },
+  skipNotif: { paddingVertical: 8, alignItems: 'center' },
 });

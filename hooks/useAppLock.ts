@@ -1,38 +1,35 @@
-import { useState, useCallback, useRef } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { useSettingsStore } from '../stores/settingsStore';
 
 const PIN_KEY = 'juno_pin';
 
-export function useAppLock() {
-  const [isLocked, setIsLocked] = useState(false);
-  const lastActiveRef = useRef<number>(Date.now());
-  const { pinEnabled, biometricEnabled, autoLockMinutes } = useSettingsStore();
+// ─── Module-level lock state ──────────────────────────────────────────────────
+// Using module-level variables avoids the React hook per-instance state problem
+// (each useAppLock() call would get its own independent isLocked state).
 
-  const lock = useCallback(() => {
-    if (pinEnabled) setIsLocked(true);
-  }, [pinEnabled]);
+let _backgroundedAt: number | null = null;
 
-  const unlock = useCallback(() => {
-    setIsLocked(false);
-    lastActiveRef.current = Date.now();
-  }, []);
+/** Call when app goes to background/inactive. */
+export function onAppBackground(): void {
+  _backgroundedAt = Date.now();
+}
 
-  const checkAutoLock = useCallback(() => {
-    if (!pinEnabled) return;
-    const idleMs = Date.now() - lastActiveRef.current;
-    const limitMs = autoLockMinutes * 60 * 1000;
-    if (idleMs >= limitMs) {
-      setIsLocked(true);
-    }
-  }, [pinEnabled, autoLockMinutes]);
+/** Call after successful PIN/biometric unlock. Resets the idle timer. */
+export function onAppUnlock(): void {
+  _backgroundedAt = null;
+}
 
-  const resetTimer = useCallback(() => {
-    lastActiveRef.current = Date.now();
-  }, []);
-
-  return { isLocked, lock, unlock, checkAutoLock, resetTimer };
+/**
+ * Returns true if the app should show the lock screen.
+ * Checks elapsed time since last background event.
+ */
+export function checkShouldLock(
+  autoLockMinutes: number,
+  pinEnabled: boolean
+): boolean {
+  if (!pinEnabled || _backgroundedAt === null) return false;
+  const idleMs = Date.now() - _backgroundedAt;
+  return idleMs >= autoLockMinutes * 60 * 1000;
 }
 
 // ─── PIN management ──────────────────────────────────────────────────────────

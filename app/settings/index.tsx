@@ -18,22 +18,24 @@ import { upsertUser, deleteAllData } from '../../lib/db/queries';
 import { Colors } from '../../constants/colors';
 import { Spacing, Radius } from '../../constants/theme';
 import { APP_MODES } from '../../constants/content';
-import type { AppMode, WeightUnit, TempUnit } from '../../types';
+import type { AppMode, WeightUnit, HeightUnit } from '../../types';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const colors = useColors();
   const db = useSQLiteContext();
-  const { profile, updateProfile } = useUserStore();
-  const { setMode, setWeightUnit, setTempUnit, resetSettings } = useSettingsStore();
+  const { profile, updateProfile, clearProfile } = useUserStore();
+  const { setMode, setWeightUnit, resetSettings } = useSettingsStore();
   const { reset: resetCycles } = useCycleStore();
 
   const [name, setName] = useState(profile?.name ?? '');
   const [cycleLen, setCycleLen] = useState(String(profile?.avgCycleLength ?? 28));
   const [periodLen, setPeriodLen] = useState(String(profile?.avgPeriodLength ?? 5));
-  const [mode, setModeLocal] = useState<AppMode>(profile?.mode ?? 'tracking');
+  const [height, setHeight] = useState(profile?.height ? String(profile.height) : '');
+  const [weight, setWeight] = useState(profile?.weight ? String(profile.weight) : '');
+  const [heightUnit, setHeightUnitLocal] = useState<HeightUnit>(profile?.heightUnit ?? 'cm');
   const [weightUnit, setWeightUnitLocal] = useState<WeightUnit>(profile?.weightUnit ?? 'kg');
-  const [tempUnit, setTempUnitLocal] = useState<TempUnit>(profile?.tempUnit ?? 'celsius');
+  const [mode, setModeLocal] = useState<AppMode>(profile?.mode ?? 'tracking');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -43,63 +45,60 @@ export default function SettingsScreen() {
       name: name.trim(),
       avgCycleLength: parseInt(cycleLen, 10) || 28,
       avgPeriodLength: parseInt(periodLen, 10) || 5,
-      mode,
+      height: height ? parseFloat(height) : null,
+      weight: weight ? parseFloat(weight) : null,
+      heightUnit,
       weightUnit,
-      tempUnit,
+      mode,
     };
     updateProfile(updates);
     setMode(mode);
     setWeightUnit(weightUnit);
-    setTempUnit(tempUnit);
     if (profile) await upsertUser(db, { ...profile, ...updates });
     setSaving(false);
     router.back();
-  }, [name, cycleLen, periodLen, mode, weightUnit, tempUnit, profile, db, updateProfile, setMode, setWeightUnit, setTempUnit, router]);
+  }, [name, cycleLen, periodLen, height, weight, heightUnit, weightUnit, mode, profile, db, updateProfile, setMode, setWeightUnit, router]);
 
   const handleDeleteAll = useCallback(async () => {
     await deleteAllData(db);
     resetCycles();
     resetSettings();
+    clearProfile();
     router.replace('/(onboarding)/welcome');
-  }, [db, resetCycles, resetSettings, router]);
+  }, [db, resetCycles, resetSettings, clearProfile, router]);
 
-  function ToggleRow<T extends string>({
-    label,
+  function UnitToggle<T extends string>({
     options,
     value,
     onChange,
   }: {
-    label: string;
     options: { key: T; label: string }[];
     value: T;
     onChange: (v: T) => void;
   }) {
     return (
-      <View style={s.settingRow}>
-        <Typography variant="body2" style={{ flex: 1 }}>{label}</Typography>
-        <View style={s.toggleGroup}>
-          {options.map((o) => (
-            <TouchableOpacity
-              key={o.key}
-              onPress={() => onChange(o.key)}
-              style={[
-                s.toggleBtn,
-                {
-                  backgroundColor: value === o.key ? Colors.dustyRose : colors.surfaceSecondary,
-                  borderColor: value === o.key ? Colors.dustyRose : colors.border,
-                },
-              ]}
+      <View style={s.unitToggle}>
+        {options.map((o) => (
+          <TouchableOpacity
+            key={o.key}
+            onPress={() => onChange(o.key)}
+            style={[
+              s.unitBtn,
+              {
+                backgroundColor: value === o.key ? Colors.dustyRose : colors.surfaceSecondary,
+                borderColor: value === o.key ? Colors.dustyRose : colors.border,
+              },
+            ]}
+          >
+            <Typography
+              variant="caption"
+              color={value === o.key ? '#fff' : colors.textSecondary}
+              style={{ fontWeight: '600' }}
             >
-              <Typography
-                variant="caption"
-                color={value === o.key ? '#fff' : colors.textSecondary}
-                style={{ fontWeight: '600' }}
-              >
-                {o.label}
-              </Typography>
-            </TouchableOpacity>
-          ))}
-        </View>
+              {o.label}
+            </Typography>
+          </TouchableOpacity>
+        ))}
       </View>
     );
   }
@@ -127,38 +126,57 @@ export default function SettingsScreen() {
             containerStyle={{ marginBottom: 12 }}
           />
           <Input
-            label="Average cycle length"
+            label="Average cycle length (days)"
             value={cycleLen}
             onChangeText={setCycleLen}
             keyboardType="numeric"
             containerStyle={{ marginBottom: 12 }}
           />
           <Input
-            label="Average period length"
+            label="Average period length (days)"
             value={periodLen}
             onChangeText={setPeriodLen}
             keyboardType="numeric"
+            containerStyle={{ marginBottom: 16 }}
           />
-        </Card>
 
-        {/* Units */}
-        <Card padding={16}>
-          <Typography variant="label" color={colors.textSecondary} style={{ marginBottom: 12 }}>
-            Units
-          </Typography>
-          <ToggleRow
-            label="Weight"
-            options={[{ key: 'kg', label: 'kg' }, { key: 'lbs', label: 'lbs' }]}
-            value={weightUnit}
-            onChange={setWeightUnitLocal}
-          />
-          <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 8 }} />
-          <ToggleRow
-            label="Temperature"
-            options={[{ key: 'celsius', label: '°C' }, { key: 'fahrenheit', label: '°F' }]}
-            value={tempUnit}
-            onChange={setTempUnitLocal}
-          />
+          {/* Height row */}
+          <View style={s.measureRow}>
+            <Input
+              label="Height"
+              value={height}
+              onChangeText={setHeight}
+              keyboardType="decimal-pad"
+              placeholder={heightUnit === 'cm' ? 'e.g. 165' : 'e.g. 5.4'}
+              containerStyle={{ flex: 1 }}
+            />
+            <View style={{ marginTop: 22 }}>
+              <UnitToggle
+                options={[{ key: 'cm', label: 'cm' }, { key: 'in', label: 'in' }]}
+                value={heightUnit}
+                onChange={setHeightUnitLocal}
+              />
+            </View>
+          </View>
+
+          {/* Weight row */}
+          <View style={[s.measureRow, { marginTop: 12 }]}>
+            <Input
+              label="Weight"
+              value={weight}
+              onChangeText={setWeight}
+              keyboardType="decimal-pad"
+              placeholder={weightUnit === 'kg' ? 'e.g. 60' : 'e.g. 132'}
+              containerStyle={{ flex: 1 }}
+            />
+            <View style={{ marginTop: 22 }}>
+              <UnitToggle
+                options={[{ key: 'kg', label: 'kg' }, { key: 'lbs', label: 'lbs' }]}
+                value={weightUnit}
+                onChange={setWeightUnitLocal}
+              />
+            </View>
+          </View>
         </Card>
 
         {/* Mode */}
@@ -241,9 +259,13 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
   },
   scroll: { padding: Spacing.md, gap: Spacing.md, paddingBottom: Spacing['3xl'] },
-  settingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
-  toggleGroup: { flexDirection: 'row', gap: 6 },
-  toggleBtn: {
+  measureRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 12,
+  },
+  unitToggle: { flexDirection: 'row', gap: 6, marginBottom: 4 },
+  unitBtn: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: Radius.full,

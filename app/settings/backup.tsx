@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Download, Upload, FileText } from 'lucide-react-native';
+import { ChevronLeft, Download, Upload } from 'lucide-react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { useSQLiteContext } from 'expo-sqlite';
 
@@ -11,7 +11,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { useColors } from '../../hooks/useTheme';
 import { useCycle } from '../../hooks/useCycle';
-import { exportBackup, exportCSV, importBackup } from '../../lib/backup';
+import { exportBackup, importBackup } from '../../lib/backup';
 import { Colors } from '../../constants/colors';
 import { Spacing } from '../../constants/theme';
 
@@ -22,7 +22,6 @@ export default function BackupScreen() {
   const { reload } = useCycle();
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [exportingCSV, setExportingCSV] = useState(false);
 
   const handleExport = useCallback(async () => {
     setExporting(true);
@@ -32,17 +31,6 @@ export default function BackupScreen() {
       Alert.alert('Export failed', 'Could not export your data. Please try again.');
     } finally {
       setExporting(false);
-    }
-  }, [db]);
-
-  const handleExportCSV = useCallback(async () => {
-    setExportingCSV(true);
-    try {
-      await exportCSV(db);
-    } catch (e) {
-      Alert.alert('Export failed', 'Could not export CSV. Please try again.');
-    } finally {
-      setExportingCSV(false);
     }
   }, [db]);
 
@@ -120,28 +108,6 @@ export default function BackupScreen() {
             fullWidth
             style={{ marginTop: 12 }}
           />
-
-          <View style={[s.divider, { backgroundColor: colors.border }]} />
-
-          <View style={s.optionRow}>
-            <View style={[s.iconBox, { backgroundColor: Colors.sage + '22' }]}>
-              <FileText size={20} color={Colors.sage} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Typography variant="body">Export as CSV</Typography>
-              <Typography variant="caption" color={colors.textTertiary}>
-                Export daily logs as a spreadsheet for personal records.
-              </Typography>
-            </View>
-          </View>
-          <Button
-            label="Export CSV"
-            onPress={handleExportCSV}
-            loading={exportingCSV}
-            variant="secondary"
-            fullWidth
-            style={{ marginTop: 12 }}
-          />
         </Card>
 
         <Card padding={16}>
@@ -195,5 +161,4 @@ const s = StyleSheet.create({
   scroll: { padding: Spacing.md, gap: Spacing.md, paddingBottom: Spacing['3xl'] },
   optionRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
   iconBox: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  divider: { height: 1, marginVertical: 16 },
 });
