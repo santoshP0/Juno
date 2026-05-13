@@ -15,6 +15,10 @@ export const Colors = {
   plumLight: '#3D1535',
   plumDark: '#0A0208',
 
+  teal: '#4ECDC4',
+  tealLight: '#A8EDEA',
+  tealDark: '#2BA8A0',
+
   gold: '#F472B6',
   goldLight: '#FBCFE8',
   goldDark: '#DB2777',

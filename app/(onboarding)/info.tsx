@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../components/ui/Typography';
@@ -47,14 +53,19 @@ export default function InfoScreen() {
         <ScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Typography style={styles.emoji}>🌸</Typography>
-          <Typography variant="h2" align="center">Tell us a bit about you</Typography>
+          <View style={styles.iconContainer}>
+            <Typography style={styles.emoji}>🌸</Typography>
+          </View>
+          <Typography variant="h2" align="center" style={styles.title}>
+            Tell us a bit about you
+          </Typography>
           <Typography
             variant="body2"
             align="center"
             color={colors.textSecondary}
-            style={{ marginTop: Spacing.sm, marginBottom: Spacing.xl }}
+            style={styles.subtitle}
           >
             This stays on your device and helps personalize your experience.
           </Typography>
@@ -66,7 +77,7 @@ export default function InfoScreen() {
             placeholder="e.g. Alex"
             autoCapitalize="words"
             returnKeyType="next"
-            containerStyle={{ marginBottom: Spacing.md }}
+            containerStyle={styles.input}
           />
 
           <Input
@@ -77,11 +88,11 @@ export default function InfoScreen() {
             keyboardType="numeric"
             maxLength={4}
             returnKeyType="done"
-            containerStyle={{ marginBottom: Spacing.md }}
+            containerStyle={styles.input}
           />
 
           {error ? (
-            <Typography variant="caption" color="#C9686B" style={{ marginBottom: Spacing.sm }}>
+            <Typography variant="caption" color="#C9686B" style={styles.error}>
               {error}
             </Typography>
           ) : null}
@@ -98,13 +109,37 @@ export default function InfoScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: {
-    padding: Spacing.xl,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.lg,
     flexGrow: 1,
-    alignItems: 'center',
   },
-  emoji: { fontSize: 52, marginBottom: Spacing.md },
+  iconContainer: {
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  emoji: {
+    fontSize: 52,
+    textAlign: 'center',
+    lineHeight: 64,
+  },
+  title: {
+    marginBottom: Spacing.sm,
+  },
+  subtitle: {
+    marginBottom: Spacing.xl,
+  },
+  input: {
+    marginBottom: Spacing.md,
+    width: '100%',
+  },
+  error: {
+    marginTop: 4,
+    marginBottom: Spacing.sm,
+  },
   footer: {
-    padding: Spacing.xl,
-    paddingTop: 0,
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.xl,
   },
 });

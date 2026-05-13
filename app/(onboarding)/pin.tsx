@@ -56,7 +56,9 @@ export default function PinScreen() {
       <View style={styles.content}>
         {step === 'choose' && (
           <>
-            <Typography style={styles.emoji}>🔒</Typography>
+            <View style={styles.iconContainer}>
+              <Typography style={styles.emoji}>🔒</Typography>
+            </View>
             <Typography variant="h2" align="center">Protect your data</Typography>
             <Typography
               variant="body2"
@@ -109,6 +111,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: Spacing.xl,
   },
-  emoji: { fontSize: 52, marginBottom: Spacing.md },
+  iconContainer: {
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  emoji: { fontSize: 52, textAlign: 'center', lineHeight: 64 },
   skip: { marginTop: Spacing.xl, padding: 12 },
 });

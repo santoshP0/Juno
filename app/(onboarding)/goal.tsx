@@ -63,7 +63,9 @@ export default function GoalScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Typography style={styles.emoji}>🎯</Typography>
+        <View style={styles.iconContainer}>
+          <Typography style={styles.emoji}>🎯</Typography>
+        </View>
         <Typography variant="h2" align="center">What brings you here?</Typography>
         <Typography
           variant="body2"
@@ -131,8 +133,19 @@ export default function GoalScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: Spacing.xl, flexGrow: 1, alignItems: 'center' },
-  emoji: { fontSize: 52, marginBottom: Spacing.md },
+  content: {
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.lg,
+    flexGrow: 1,
+    alignItems: 'center',
+  },
+  iconContainer: {
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  emoji: { fontSize: 52, textAlign: 'center', lineHeight: 64 },
   options: { width: '100%', gap: 12 },
   option: {
     flexDirection: 'row',

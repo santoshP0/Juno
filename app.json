@@ -12,7 +12,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#FAF6F1"
     },
-    "platforms": ["android"],
+    "platforms": [
+      "android"
+    ],
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
@@ -63,7 +65,8 @@
           "color": "#E8B4B8",
           "sounds": []
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true

@@ -166,7 +166,7 @@ export default function ProfileScreen() {
           <View style={[styles.separator, { backgroundColor: colors.border }]} />
           <MenuItem
             icon={HardDrive}
-            iconColor={Colors.plum}
+            iconColor={Colors.teal}
             label="Backup & restore"
             subtitle="Export or import your data"
             onPress={navigate('/settings/backup')}

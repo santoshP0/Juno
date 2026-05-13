@@ -60,7 +60,9 @@ export default function PrivacyScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Typography style={styles.emoji}>🛡️</Typography>
+        <View style={styles.iconContainer}>
+          <Typography style={styles.emoji}>🛡️</Typography>
+        </View>
         <Typography variant="h2" align="center">Your privacy promise</Typography>
         <Typography
           variant="body2"
@@ -157,11 +159,18 @@ export default function PrivacyScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: {
-    padding: Spacing.xl,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.lg,
     flexGrow: 1,
     alignItems: 'center',
   },
-  emoji: { fontSize: 52, marginBottom: Spacing.md },
+  iconContainer: {
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  emoji: { fontSize: 52, textAlign: 'center', lineHeight: 64 },
   point: {
     flexDirection: 'row',
     alignItems: 'flex-start',
