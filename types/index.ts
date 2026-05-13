@@ -135,6 +135,7 @@ export interface CyclePrediction {
   daysUntilNextPeriod: number;
   avgCycleLength: number;
   pregnancyChance: 'very_low' | 'low' | 'medium' | 'high' | 'very_high';
+  pregnancyChanceScore: number; // 0 to 1.0 scale
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────

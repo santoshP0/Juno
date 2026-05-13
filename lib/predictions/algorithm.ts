@@ -31,13 +31,19 @@ function calcPregnancyChance(
   today: Date,
   fertileStart: Date,
   fertileEnd: Date
-): CyclePrediction['pregnancyChance'] {
-  if (!isDateInRange(today, fertileStart, fertileEnd)) return 'very_low';
+): { label: CyclePrediction['pregnancyChance']; score: number } {
+  if (!isDateInRange(today, fertileStart, fertileEnd)) return { label: 'very_low', score: 0.05 };
+  
   const daysBefore = differenceInDays(fertileEnd, today);
-  if (daysBefore <= 0) return 'low';
-  if (daysBefore === 1) return 'very_high'; // ovulation day
-  if (daysBefore <= 2) return 'high';
-  return 'medium';
+  
+  // fertileEnd is ovulationDay + 1
+  if (daysBefore <= 0) return { label: 'low', score: 0.15 }; // Day after ovulation
+  if (daysBefore === 1) return { label: 'very_high', score: 0.95 }; // Ovulation day (peak)
+  if (daysBefore === 2) return { label: 'high', score: 0.8 }; // 1 day before
+  if (daysBefore === 3) return { label: 'high', score: 0.65 }; // 2 days before
+  if (daysBefore === 4) return { label: 'medium', score: 0.45 }; // 3 days before
+  if (daysBefore === 5) return { label: 'medium', score: 0.3 }; // 4 days before
+  return { label: 'low', score: 0.2 }; // 5 days before
 }
 
 export function calculatePredictions(
@@ -139,7 +145,7 @@ export function calculatePredictions(
     currentPhase = 'luteal';
   }
 
-  const pregnancyChance = calcPregnancyChance(today, fertileStart, fertileEnd);
+  const chanceResult = calcPregnancyChance(today, fertileStart, fertileEnd);
 
   return {
     nextPeriodStart: format(nextPeriodStart, 'yyyy-MM-dd'),
@@ -153,7 +159,8 @@ export function calculatePredictions(
     currentCycleDay,
     daysUntilNextPeriod,
     avgCycleLength,
-    pregnancyChance,
+    pregnancyChance: chanceResult.label,
+    pregnancyChanceScore: chanceResult.score,
   };
 }
 

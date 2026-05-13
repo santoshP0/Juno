@@ -297,9 +297,22 @@ export default function HomeScreen() {
             <Animated.View entering={FadeInDown.delay(300).duration(500)}>
               <Card style={styles.chanceCard} padding={14}>
                 <View style={styles.chanceRow}>
-                  <Typography variant="body2" color={colors.textSecondary}>
-                    Pregnancy chance today
-                  </Typography>
+                  <View style={{ flex: 1, marginRight: 12 }}>
+                    <Typography variant="body2" color={colors.textSecondary}>
+                      Pregnancy chance today
+                    </Typography>
+                    <View style={[styles.chanceBarContainer, { backgroundColor: colors.surfaceSecondary }]}>
+                      <View 
+                        style={[
+                          styles.chanceBarFill, 
+                          { 
+                            width: `${prediction.pregnancyChanceScore * 100}%`,
+                            backgroundColor: PREGNANCY_CHANCE_COLOR[prediction.pregnancyChance] ?? Colors.sage
+                          }
+                        ]} 
+                      />
+                    </View>
+                  </View>
                   <View
                     style={[
                       styles.chanceBadge,
@@ -318,6 +331,9 @@ export default function HomeScreen() {
                     </Typography>
                   </View>
                 </View>
+                <Typography variant="caption" color={colors.textTertiary} style={{ marginTop: 8, fontSize: 10, fontStyle: 'italic' }}>
+                  This estimate is based on your data and is not a substitute for medical advice or contraception.
+                </Typography>
               </Card>
             </Animated.View>
 
@@ -486,6 +502,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  chanceBarContainer: {
+    height: 6,
+    borderRadius: 3,
+    marginTop: 8,
+    width: '100%',
+    overflow: 'hidden',
+  },
+  chanceBarFill: {
+    height: '100%',
+    borderRadius: 3,
   },
   chanceBadge: {
     paddingHorizontal: 12,

@@ -54,15 +54,12 @@ export default function PrivacyScreen() {
   }, []);
 
   const handleRequestNotifications = useCallback(async () => {
-    console.log('[PrivacyScreen] Manual request triggered. Current status:', permStatus, 'canAskAgain:', canAskAgain);
     if (permStatus === 'denied' && !canAskAgain) {
-      console.log('[PrivacyScreen] Permission permanently denied, opening settings');
       Linking.openSettings();
       return;
     }
     setRequesting(true);
     const granted = await requestNotificationPermission();
-    console.log('[PrivacyScreen] Manual request result:', granted);
     // Refresh status after request
     const res = await getNotificationPermissionStatus();
     setPermStatus(res.status);
@@ -71,28 +68,23 @@ export default function PrivacyScreen() {
   }, [permStatus, canAskAgain]);
 
   const handleFinish = useCallback(async () => {
-    console.log('[PrivacyScreen] Finish clicked. Current status:', permStatus, 'canAskAgain:', canAskAgain);
     // If they haven't made a choice yet, or we can still ask, try to request now
     let granted = permStatus === 'granted';
     if (permStatus !== 'granted' && canAskAgain) {
-      console.log('[PrivacyScreen] Not granted and can ask, auto-requesting...');
       setRequesting(true);
       granted = await requestNotificationPermission();
       setRequesting(false);
-      console.log('[PrivacyScreen] Auto-request result:', granted);
     }
     
     // If we have permission, schedule the initial alerts
     if (granted) {
-      console.log('[PrivacyScreen] Permission granted, scheduling notifications...');
-      let { prediction, cycles, logs } = useCycleStore.getState();
+      let { prediction, cycles } = useCycleStore.getState();
       const { notifications } = useSettingsStore.getState();
       const { profile } = useUserStore.getState();
       
       // If prediction is missing (which is true during first-time onboarding),
       // calculate it now from the data we just added in cycle-info.tsx
       if (!prediction && cycles.length > 0) {
-        console.log('[PrivacyScreen] Prediction missing, calculating in-memory...');
         prediction = calculatePredictions(
           cycles,
           profile?.avgCycleLength ?? 28,
@@ -102,15 +94,9 @@ export default function PrivacyScreen() {
       }
 
       if (prediction) {
-        console.log('[PrivacyScreen] Scheduling all notifications with prediction:', prediction.nextPeriodStart);
-        scheduleAllNotifications(prediction, notifications).catch((err) => {
-          console.error('[PrivacyScreen] Failed to schedule notifications:', err);
-        });
-      } else {
-        console.log('[PrivacyScreen] Could not schedule: No prediction available');
+        scheduleAllNotifications(prediction, notifications).catch(console.error);
       }
     } else {
-      console.log('[PrivacyScreen] Permission not granted, skipping schedule');
     }
     
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

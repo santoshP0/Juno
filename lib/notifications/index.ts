@@ -46,15 +46,12 @@ export async function setupNotificationChannels(): Promise<void> {
 // ─── Permission ──────────────────────────────────────────────────────────────
 
 export async function requestNotificationPermission(): Promise<boolean> {
-  console.log('[Notifications] Requesting permissions...');
-  const { status, canAskAgain, expires } = await Notifications.requestPermissionsAsync();
-  console.log('[Notifications] Request result:', { status, canAskAgain, expires });
+  const { status } = await Notifications.requestPermissionsAsync();
   return status === 'granted';
 }
 
 export async function getNotificationPermissionStatus() {
   const { status, canAskAgain } = await Notifications.getPermissionsAsync();
-  console.log('[Notifications] Current status:', { status, canAskAgain });
   return { status, canAskAgain };
 }
 
