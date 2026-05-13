@@ -118,7 +118,7 @@ export default function SecurityScreen() {
               value={pinEnabled}
               onValueChange={handleTogglePin}
               trackColor={{ false: colors.border, true: Colors.dustyRose }}
-              thumbColor="#fff"
+              thumbColor={Colors.white}
             />
           </View>
 
@@ -136,7 +136,7 @@ export default function SecurityScreen() {
                   value={biometricEnabled}
                   onValueChange={setBiometricEnabled}
                   trackColor={{ false: colors.border, true: Colors.sage }}
-                  thumbColor="#fff"
+                  thumbColor={Colors.white}
                 />
               </View>
             </>
@@ -168,7 +168,7 @@ export default function SecurityScreen() {
                     >
                       <Typography
                         variant="caption"
-                        color={autoLockMinutes === mins ? '#fff' : colors.textSecondary}
+                        color={autoLockMinutes === mins ? Colors.white : colors.textSecondary}
                         style={{ fontWeight: '600' }}
                       >
                         {mins}m
@@ -225,5 +225,5 @@ const s = StyleSheet.create({
   },
   lockRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   lockBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5 },
-  divider: { height: 1, backgroundColor: '#00000008', marginVertical: 8 },
+  divider: { height: 1, backgroundColor: Colors.dividerDark, marginVertical: 8 },
 });

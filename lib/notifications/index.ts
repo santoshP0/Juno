@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { Colors } from '../../constants/colors';
 import type { CyclePrediction, NotificationSettings } from '../../types';
 import { parseISO, addDays } from 'date-fns';
 
@@ -23,7 +24,7 @@ export async function setupNotificationChannels(): Promise<void> {
     description: 'Period, ovulation and fertile window reminders',
     importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
-    lightColor: '#FF2D78',
+    lightColor: Colors.dustyRose,
     sound: 'default',
   });
 

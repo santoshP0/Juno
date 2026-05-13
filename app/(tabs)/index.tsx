@@ -36,12 +36,7 @@ import type { CyclePhase } from '../../types';
 
 const { width } = Dimensions.get('window');
 
-const PHASE_GRADIENT: Record<CyclePhase, string[]> = {
-  menstrual: ['#FF2D78', '#FF6BA8'],
-  follicular: ['#A78BFA', '#C4B5FD'],
-  ovulation: ['#34D399', '#6EE7B7'],
-  luteal: ['#F472B6', '#FBCFE8'],
-};
+const PHASE_GRADIENT: Record<CyclePhase, string[]> = Colors.phaseGradients;
 
 const PHASE_LABELS: Record<CyclePhase, string> = {
   menstrual: 'Menstrual',

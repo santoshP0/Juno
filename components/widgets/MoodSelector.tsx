@@ -14,17 +14,17 @@ interface MoodSelectorProps {
 }
 
 const MOOD_COLORS: Record<string, string> = {
-  happy: '#FBBF24',
-  calm: '#60A5FA',
-  energetic: '#F97316',
-  confident: '#A78BFA',
-  excited: '#EC4899',
-  sensitive: Colors.dustyRose,
-  sad: '#6B7280',
-  anxious: '#FB923C',
-  irritable: '#EF4444',
-  overwhelmed: '#7C3AED',
-  depressed: '#374151',
+  happy:       Colors.moods.happy,
+  calm:        Colors.moods.calm,
+  energetic:   Colors.moods.energetic,
+  confident:   Colors.moods.confident,
+  excited:     Colors.moods.excited,
+  sensitive:   Colors.moods.sensitive,
+  sad:         Colors.moods.sad,
+  anxious:     Colors.moods.anxious,
+  irritable:   Colors.moods.irritable,
+  overwhelmed: Colors.moods.overwhelmed,
+  depressed:   Colors.moods.depressed,
 };
 
 export function MoodSelector({ selected, onToggle }: MoodSelectorProps) {

@@ -92,7 +92,7 @@ export default function SettingsScreen() {
           >
             <Typography
               variant="caption"
-              color={value === o.key ? '#fff' : colors.textSecondary}
+              color={value === o.key ? Colors.white : colors.textSecondary}
               style={{ fontWeight: '600' }}
             >
               {o.label}

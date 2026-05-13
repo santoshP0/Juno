@@ -37,19 +37,19 @@ function buildMarkedDates(calMap: Record<string, string[]>, today: string): Mark
     let selectedColor: string | undefined;
     let dotColor: string | undefined;
 
-    if (hasPeriod) selectedColor = Colors.dustyRose;
-    else if (hasPredicted) selectedColor = Colors.dustyRoseLight;
-    else if (hasOvulation) selectedColor = Colors.success;
-    else if (hasFertile) selectedColor = Colors.sageLight;
+    if (hasPeriod) selectedColor = Colors.calendar.period;
+    else if (hasPredicted) selectedColor = Colors.calendar.periodPredicted;
+    else if (hasOvulation) selectedColor = Colors.calendar.ovulation;
+    else if (hasFertile) selectedColor = Colors.calendar.fertile;
 
-    if (hasLogged) dotColor = Colors.sage;
-    if (isToday && !selectedColor) selectedColor = Colors.plum;
+    if (hasLogged) dotColor = Colors.calendar.logged;
+    if (isToday && !selectedColor) selectedColor = Colors.calendar.today;
 
     marked[date] = {
       selected: !!selectedColor,
       selectedColor,
       marked: hasLogged,
-      dotColor: dotColor ?? Colors.sage,
+      dotColor: dotColor ?? Colors.calendar.logged,
     };
   });
 
@@ -57,11 +57,11 @@ function buildMarkedDates(calMap: Record<string, string[]>, today: string): Mark
 }
 
 const LEGEND = [
-  { color: Colors.dustyRose, label: 'Period' },
-  { color: Colors.dustyRoseLight, label: 'Predicted period' },
-  { color: Colors.success, label: 'Ovulation' },
-  { color: Colors.sageLight, label: 'Fertile window' },
-  { color: Colors.plum, label: 'Today' },
+  { color: Colors.calendar.period, label: 'Period' },
+  { color: Colors.calendar.periodPredicted, label: 'Predicted period' },
+  { color: Colors.calendar.ovulation, label: 'Ovulation' },
+  { color: Colors.calendar.fertile, label: 'Fertile window' },
+  { color: Colors.calendar.today, label: 'Today' },
 ];
 
 export default function CalendarScreen() {
@@ -149,12 +149,12 @@ export default function CalendarScreen() {
               calendarBackground: 'transparent',
               textSectionTitleColor: colors.textSecondary,
               dayTextColor: colors.text,
-              todayTextColor: '#fff',
-              selectedDayTextColor: '#fff',
+              todayTextColor: Colors.white,
+              selectedDayTextColor: Colors.white,
               monthTextColor: colors.text,
               arrowColor: Colors.dustyRose,
               dotColor: Colors.sage,
-              selectedDotColor: '#fff',
+              selectedDotColor: Colors.white,
               'stylesheet.calendar.header': {
                 header: { display: 'none' },
               } as any,

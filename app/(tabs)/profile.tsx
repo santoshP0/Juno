@@ -78,10 +78,10 @@ function ThemeToggle() {
               },
             ]}
           >
-            <o.Icon size={16} color={selected ? '#fff' : colors.textSecondary} />
+            <o.Icon size={16} color={selected ? Colors.white : colors.textSecondary} />
             <Typography
               variant="caption"
-              color={selected ? '#fff' : colors.textSecondary}
+              color={selected ? Colors.white : colors.textSecondary}
               style={{ fontWeight: '600', marginTop: 2 }}
             >
               {o.label}
@@ -174,7 +174,7 @@ export default function ProfileScreen() {
           <View style={[styles.separator, { backgroundColor: colors.border }]} />
           <MenuItem
             icon={Info}
-            iconColor={Colors.textSecondary as string}
+            iconColor={colors.textSecondary}
             label="About Juno"
             onPress={navigate('/settings/about')}
           />

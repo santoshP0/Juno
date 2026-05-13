@@ -80,10 +80,10 @@ function FlowSelector({
             },
           ]}
         >
-          <Droplets size={20} color={value === o.key ? '#fff' : o.color} />
+          <Droplets size={20} color={value === o.key ? Colors.white : o.color} />
           <Typography
             variant="caption"
-            color={value === o.key ? '#fff' : colors.textSecondary}
+            color={value === o.key ? Colors.white : colors.textSecondary}
             style={{ marginTop: 2, textAlign: 'center' }}
           >
             {o.label}
@@ -398,7 +398,7 @@ export default function LogScreen() {
             disabled={saving}
             style={[s.saveBtn, { backgroundColor: Colors.dustyRose }]}
           >
-            <Check size={18} color="#fff" />
+            <Check size={18} color={Colors.white} />
           </TouchableOpacity>
         </View>
       </View>
@@ -601,7 +601,7 @@ const s = StyleSheet.create({
   starRow: { flexDirection: 'row' },
   waterRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
   waterBtn: { padding: 8 },
-  divider: { height: 1, backgroundColor: '#00000010', marginVertical: 8 },
+  divider: { height: 1, backgroundColor: Colors.dividerLight, marginVertical: 8 },
   notesInput: {
     borderWidth: 1.5,
     borderRadius: Radius.lg,

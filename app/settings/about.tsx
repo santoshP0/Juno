@@ -134,6 +134,6 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: '#00000006',
+    borderBottomColor: Colors.dividerLight,
   },
 });

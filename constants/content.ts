@@ -1,3 +1,4 @@
+import { Colors } from './colors';
 import type { Symptom, Mood, CyclePhase, ArticleCategory } from '../types';
 
 export const SYMPTOMS: { key: Symptom; label: string; icon: string }[] = [
@@ -42,7 +43,7 @@ export const PHASE_INFO: Record<CyclePhase, {
   menstrual: {
     name: 'Menstrual Phase',
     description: 'Your body is shedding the uterine lining. Rest and gentle self-care are your allies.',
-    color: '#FF2D78',
+    color: Colors.phases.menstrual,
     tips: [
       'Stay warm and rest as needed',
       'Try gentle yoga or walking',
@@ -53,7 +54,7 @@ export const PHASE_INFO: Record<CyclePhase, {
   follicular: {
     name: 'Follicular Phase',
     description: 'Energy is rising as your body prepares to release an egg. This is a great time for new beginnings.',
-    color: '#A78BFA',
+    color: Colors.phases.follicular,
     tips: [
       'Great time to start new projects',
       'Energy supports higher-intensity workouts',
@@ -64,7 +65,7 @@ export const PHASE_INFO: Record<CyclePhase, {
   ovulation: {
     name: 'Ovulation Phase',
     description: 'You\'re at peak fertility and energy. Communication and confidence are at their highest.',
-    color: '#34D399',
+    color: Colors.phases.ovulation,
     tips: [
       'Peak time for important conversations',
       'High energy — try HIIT or strength training',
@@ -75,7 +76,7 @@ export const PHASE_INFO: Record<CyclePhase, {
   luteal: {
     name: 'Luteal Phase',
     description: 'Your body prepares for either pregnancy or the next cycle. Tune inward and practice extra self-care.',
-    color: '#F472B6',
+    color: Colors.phases.luteal,
     tips: [
       'Reduce caffeine and sugar',
       'Prioritize sleep and stress management',

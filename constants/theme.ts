@@ -42,21 +42,21 @@ export const FontWeight = {
 
 export const Shadow = {
   sm: {
-    shadowColor: '#FF2D78',
+    shadowColor: Colors.dustyRose,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.15,
     shadowRadius: 6,
     elevation: 3,
   },
   md: {
-    shadowColor: '#FF2D78',
+    shadowColor: Colors.dustyRose,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 12,
     elevation: 6,
   },
   lg: {
-    shadowColor: '#FF2D78',
+    shadowColor: Colors.dustyRose,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
     shadowRadius: 20,

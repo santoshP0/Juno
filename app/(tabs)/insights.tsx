@@ -174,7 +174,7 @@ export default function InsightsScreen() {
             >
               <Typography
                 variant="caption"
-                color={range === r.key ? '#fff' : colors.textSecondary}
+                color={range === r.key ? Colors.white : colors.textSecondary}
                 style={{ fontWeight: '700' }}
               >
                 {r.label}

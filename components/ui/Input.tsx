@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Typography } from './Typography';
 import { useColors } from '../../hooks/useTheme';
+import { Colors } from '../../constants/colors';
 import { Radius, Spacing, FontSize } from '../../constants/theme';
 
 interface InputProps extends TextInputProps {
@@ -33,7 +34,7 @@ export const Input = forwardRef<TextInput, InputProps>(
           style={[
             styles.inputWrapper,
             {
-              borderColor: error ? '#C9686B' : colors.border,
+              borderColor: error ? Colors.error : colors.border,
               backgroundColor: colors.surfaceSecondary,
             },
           ]}
@@ -57,7 +58,7 @@ export const Input = forwardRef<TextInput, InputProps>(
           {rightIcon && <View style={styles.iconRight}>{rightIcon}</View>}
         </View>
         {error && (
-          <Typography variant="caption" color="#C9686B" style={{ marginTop: 4 }}>
+          <Typography variant="caption" color={Colors.error} style={{ marginTop: 4 }}>
             {error}
           </Typography>
         )}

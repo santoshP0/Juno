@@ -13,6 +13,7 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useColors } from '../../hooks/useTheme';
 import { useUserStore } from '../../stores/userStore';
+import { Colors } from '../../constants/colors';
 import { Spacing } from '../../constants/theme';
 
 export default function InfoScreen() {
@@ -92,7 +93,7 @@ export default function InfoScreen() {
           />
 
           {error ? (
-            <Typography variant="caption" color="#C9686B" style={styles.error}>
+            <Typography variant="caption" color={Colors.error} style={styles.error}>
               {error}
             </Typography>
           ) : null}

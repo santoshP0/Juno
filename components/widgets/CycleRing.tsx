@@ -9,6 +9,7 @@ import Animated, {
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { Typography } from '../ui/Typography';
 import { useColors } from '../../hooks/useTheme';
+import { Colors } from '../../constants/colors';
 import type { CyclePhase } from '../../types';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -21,12 +22,7 @@ interface CycleRingProps {
   size?: number;
 }
 
-const PHASE_COLORS: Record<CyclePhase, [string, string]> = {
-  menstrual:  ['#FF5C8D', '#FF8FB3'],
-  follicular: ['#9D7AF5', '#C4B5FD'],
-  ovulation:  ['#2CC98B', '#6EE7B7'],
-  luteal:     ['#E879A0', '#F9A8D4'],
-};
+const PHASE_COLORS: Record<CyclePhase, [string, string]> = Colors.phaseGradients;
 
 const PHASE_LABELS: Record<CyclePhase, string> = {
   menstrual:  'Menstrual',
@@ -172,7 +168,7 @@ export function CycleRing({
         <Circle cx={tip.x} cy={tip.y} r={SW / 2 + 5} fill={colors.background} />
         <Circle cx={tip.x} cy={tip.y} r={SW / 2 + 2} fill={colorA} opacity={0.35} />
         <Circle cx={tip.x} cy={tip.y} r={SW / 2 - 1} fill={colorA} />
-        <Circle cx={tip.x} cy={tip.y} r={4} fill="white" />
+        <Circle cx={tip.x} cy={tip.y} r={4} fill={Colors.white} />
       </Svg>
 
       {/* Center content */}

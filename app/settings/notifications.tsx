@@ -63,7 +63,7 @@ function SettingSwitch({
         value={value}
         onValueChange={disabled ? undefined : onValueChange}
         trackColor={{ false: colors.border, true: Colors.dustyRose }}
-        thumbColor="#fff"
+        thumbColor={Colors.white}
         disabled={disabled}
       />
     </View>
@@ -219,7 +219,7 @@ export default function NotificationsScreen() {
                 >
                   <Typography
                     variant="caption"
-                    color={settings.periodSoonDays === d ? '#fff' : colors.textSecondary}
+                    color={settings.periodSoonDays === d ? Colors.white : colors.textSecondary}
                     style={{ fontWeight: '600' }}
                   >
                     {d}d

@@ -57,7 +57,7 @@ export function Button({
   const getVariantStyles = (): { bg: string; text: string; border?: string } => {
     switch (variant) {
       case 'primary':
-        return { bg: Colors.dustyRose, text: '#FFFFFF' };
+        return { bg: Colors.dustyRose, text: Colors.white };
       case 'secondary':
         return { bg: Colors.sage, text: Colors.plum };
       case 'outline':
@@ -65,7 +65,7 @@ export function Button({
       case 'ghost':
         return { bg: 'transparent', text: Colors.dustyRose };
       case 'danger':
-        return { bg: Colors.error, text: '#fff' };
+        return { bg: Colors.error, text: Colors.white };
     }
   };
 

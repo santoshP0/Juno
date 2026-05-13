@@ -31,15 +31,15 @@ try {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  cycle_basics: Colors.dustyRose,
-  health_conditions: Colors.error,
-  nutrition: Colors.success,
-  fitness: Colors.sage,
-  mental_health: Colors.gold,
-  sexual_health: '#F97316',
-  pregnancy: '#EC4899',
-  perimenopause: Colors.sageDark,
-  ttc: Colors.dustyRoseDark,
+  cycle_basics:      Colors.articleCategories.cycle_basics,
+  health_conditions: Colors.articleCategories.health_conditions,
+  nutrition:         Colors.articleCategories.nutrition,
+  fitness:           Colors.articleCategories.fitness,
+  mental_health:     Colors.articleCategories.mental_health,
+  sexual_health:     Colors.articleCategories.sexual_health,
+  pregnancy:         Colors.articleCategories.pregnancy,
+  perimenopause:     Colors.articleCategories.perimenopause,
+  ttc:               Colors.articleCategories.ttc,
 };
 
 function ArticleCard({
@@ -261,7 +261,7 @@ export default function ArticlesScreen() {
           >
             <Typography
               variant="caption"
-              color={!selectedCategory ? '#fff' : colors.textSecondary}
+              color={!selectedCategory ? Colors.white : colors.textSecondary}
               style={{ fontWeight: '700' }}
             >
               All
@@ -285,7 +285,7 @@ export default function ArticlesScreen() {
               >
                 <Typography
                   variant="caption"
-                  color={active ? '#fff' : colors.textSecondary}
+                  color={active ? Colors.white : colors.textSecondary}
                   style={{ fontWeight: '700' }}
                 >
                   {cat.label}
