@@ -15,6 +15,10 @@ import {
 } from '../../lib/notifications';
 import { Colors } from '../../constants/colors';
 import { Spacing, Radius } from '../../constants/theme';
+import { scheduleAllNotifications } from '../../lib/notifications';
+import { useCycleStore } from '../../stores/cycleStore';
+import { useUserStore } from '../../stores/userStore';
+import { calculatePredictions } from '../../lib/predictions/algorithm';
 
 const PRIVACY_POINTS = [
   { emoji: '📵', text: 'No internet connection required — ever.' },
@@ -30,29 +34,92 @@ export default function PrivacyScreen() {
   const colors = useColors();
   const { setOnboardingComplete } = useSettingsStore();
   const [permStatus, setPermStatus] = useState<'granted' | 'denied' | 'undetermined' | null>(null);
+  const [canAskAgain, setCanAskAgain] = useState(true);
   const [requesting, setRequesting] = useState(false);
 
   useEffect(() => {
-    getNotificationPermissionStatus().then(setPermStatus);
+    getNotificationPermissionStatus().then((res) => {
+      setPermStatus(res.status);
+      setCanAskAgain(res.canAskAgain);
+    });
     const sub = AppState.addEventListener('change', (s: AppStateStatus) => {
-      if (s === 'active') getNotificationPermissionStatus().then(setPermStatus);
+      if (s === 'active') {
+        getNotificationPermissionStatus().then((res) => {
+          setPermStatus(res.status);
+          setCanAskAgain(res.canAskAgain);
+        });
+      }
     });
     return () => sub.remove();
   }, []);
 
   const handleRequestNotifications = useCallback(async () => {
-    if (permStatus === 'denied') {
+    console.log('[PrivacyScreen] Manual request triggered. Current status:', permStatus, 'canAskAgain:', canAskAgain);
+    if (permStatus === 'denied' && !canAskAgain) {
+      console.log('[PrivacyScreen] Permission permanently denied, opening settings');
       Linking.openSettings();
       return;
     }
     setRequesting(true);
     const granted = await requestNotificationPermission();
-    setPermStatus(granted ? 'granted' : 'denied');
+    console.log('[PrivacyScreen] Manual request result:', granted);
+    // Refresh status after request
+    const res = await getNotificationPermissionStatus();
+    setPermStatus(res.status);
+    setCanAskAgain(res.canAskAgain);
     setRequesting(false);
-  }, [permStatus]);
+  }, [permStatus, canAskAgain]);
 
   const handleFinish = useCallback(async () => {
+    console.log('[PrivacyScreen] Finish clicked. Current status:', permStatus, 'canAskAgain:', canAskAgain);
+    // If they haven't made a choice yet, or we can still ask, try to request now
+    let granted = permStatus === 'granted';
+    if (permStatus !== 'granted' && canAskAgain) {
+      console.log('[PrivacyScreen] Not granted and can ask, auto-requesting...');
+      setRequesting(true);
+      granted = await requestNotificationPermission();
+      setRequesting(false);
+      console.log('[PrivacyScreen] Auto-request result:', granted);
+    }
+    
+    // If we have permission, schedule the initial alerts
+    if (granted) {
+      console.log('[PrivacyScreen] Permission granted, scheduling notifications...');
+      let { prediction, cycles, logs } = useCycleStore.getState();
+      const { notifications } = useSettingsStore.getState();
+      const { profile } = useUserStore.getState();
+      
+      // If prediction is missing (which is true during first-time onboarding),
+      // calculate it now from the data we just added in cycle-info.tsx
+      if (!prediction && cycles.length > 0) {
+        console.log('[PrivacyScreen] Prediction missing, calculating in-memory...');
+        prediction = calculatePredictions(
+          cycles,
+          profile?.avgCycleLength ?? 28,
+          profile?.avgPeriodLength ?? 5,
+          []
+        );
+      }
+
+      if (prediction) {
+        console.log('[PrivacyScreen] Scheduling all notifications with prediction:', prediction.nextPeriodStart);
+        scheduleAllNotifications(prediction, notifications).catch((err) => {
+          console.error('[PrivacyScreen] Failed to schedule notifications:', err);
+        });
+      } else {
+        console.log('[PrivacyScreen] Could not schedule: No prediction available');
+      }
+    } else {
+      console.log('[PrivacyScreen] Permission not granted, skipping schedule');
+    }
+    
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setOnboardingComplete(true);
+    router.replace('/(tabs)/');
+  }, [permStatus, setOnboardingComplete, router]);
+
+  const handleSkip = useCallback(async () => {
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Medium);
     setOnboardingComplete(true);
     router.replace('/(tabs)/');
   }, [setOnboardingComplete, router]);
@@ -145,7 +212,7 @@ export default function PrivacyScreen() {
           size="lg"
         />
         {permStatus !== 'granted' && (
-          <TouchableOpacity onPress={handleFinish} style={styles.skipNotif}>
+          <TouchableOpacity onPress={handleSkip} style={styles.skipNotif}>
             <Typography variant="caption" color={colors.textTertiary} align="center">
               Skip notifications
             </Typography>

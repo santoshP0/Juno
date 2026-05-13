@@ -62,7 +62,7 @@ function SettingSwitch({
       <Switch
         value={value}
         onValueChange={disabled ? undefined : onValueChange}
-        trackColor={{ false: colors.border, true: Colors.dustyRose }}
+        trackColor={{ false: colors.border, true: disabled ? colors.border : Colors.dustyRose }}
         thumbColor={Colors.white}
         disabled={disabled}
       />
@@ -70,13 +70,13 @@ function SettingSwitch({
   );
 }
 
-function TimeDisplay({ label, time }: { label: string; time: string }) {
+function TimeDisplay({ label, time, disabled }: { label: string; time: string; disabled?: boolean }) {
   const colors = useColors();
   return (
-    <View style={s.timeRow}>
+    <View style={[s.timeRow, disabled && { opacity: 0.5 }]}>
       <Typography variant="caption" color={colors.textTertiary}>{label}</Typography>
-      <View style={[s.timeBadge, { backgroundColor: Colors.dustyRose + '18', borderColor: Colors.dustyRose + '40' }]}>
-        <Typography variant="caption" color={Colors.dustyRose} style={{ fontWeight: '700' }}>
+      <View style={[s.timeBadge, { backgroundColor: disabled ? colors.border + '22' : Colors.dustyRose + '18', borderColor: disabled ? colors.border : Colors.dustyRose + '40' }]}>
+        <Typography variant="caption" color={disabled ? colors.textTertiary : Colors.dustyRose} style={{ fontWeight: '700' }}>
           {time}
         </Typography>
       </View>
@@ -112,15 +112,22 @@ export default function NotificationsScreen() {
 
   const [settings, setSettings] = useState<NotificationSettings>(notifications);
   const [permStatus, setPermStatus] = useState<'granted' | 'denied' | 'undetermined' | null>(null);
+  const [canAskAgain, setCanAskAgain] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    getNotificationPermissionStatus().then(setPermStatus);
+    getNotificationPermissionStatus().then((res) => {
+      setPermStatus(res.status);
+      setCanAskAgain(res.canAskAgain);
+    });
     // Re-check when user returns from device Settings after granting permission
     const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
       if (state === 'active') {
-        getNotificationPermissionStatus().then(setPermStatus);
+        getNotificationPermissionStatus().then((res) => {
+          setPermStatus(res.status);
+          setCanAskAgain(res.canAskAgain);
+        });
       }
     });
     return () => sub.remove();
@@ -133,13 +140,15 @@ export default function NotificationsScreen() {
   );
 
   const handleRequestPermission = useCallback(async () => {
-    if (permStatus === 'denied') {
+    if (permStatus === 'denied' && !canAskAgain) {
       Linking.openSettings();
     } else {
       const granted = await requestNotificationPermission();
-      setPermStatus(granted ? 'granted' : 'denied');
+      const res = await getNotificationPermissionStatus();
+      setPermStatus(res.status);
+      setCanAskAgain(res.canAskAgain);
     }
-  }, [permStatus]);
+  }, [permStatus, canAskAgain]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -203,17 +212,18 @@ export default function NotificationsScreen() {
           />
 
           {settings.periodSoonEnabled && (
-            <View style={s.subOption}>
+            <View style={[s.subOption, notifDisabled && { opacity: 0.5 }]}>
               <Typography variant="caption" color={colors.textSecondary}>Days before: </Typography>
               {([1, 2, 3] as const).map((d) => (
                 <TouchableOpacity
                   key={d}
-                  onPress={() => update({ periodSoonDays: d })}
+                  onPress={notifDisabled ? undefined : () => update({ periodSoonDays: d })}
+                  activeOpacity={notifDisabled ? 1 : 0.7}
                   style={[
                     s.dayBtn,
                     {
-                      backgroundColor: settings.periodSoonDays === d ? Colors.dustyRose : colors.surfaceSecondary,
-                      borderColor: settings.periodSoonDays === d ? Colors.dustyRose : colors.border,
+                      backgroundColor: settings.periodSoonDays === d ? (notifDisabled ? colors.border : Colors.dustyRose) : colors.surfaceSecondary,
+                      borderColor: settings.periodSoonDays === d ? (notifDisabled ? colors.border : Colors.dustyRose) : colors.border,
                     },
                   ]}
                 >
@@ -271,7 +281,7 @@ export default function NotificationsScreen() {
             disabled={notifDisabled}
           />
           {settings.dailyLogEnabled && (
-            <TimeDisplay label="Reminder time" time={settings.dailyLogTime} />
+            <TimeDisplay label="Reminder time" time={settings.dailyLogTime} disabled={notifDisabled} />
           )}
 
           <Divider />
@@ -283,7 +293,7 @@ export default function NotificationsScreen() {
             disabled={notifDisabled}
           />
           {settings.pillReminderEnabled && (
-            <TimeDisplay label="Reminder time" time={settings.pillReminderTime} />
+            <TimeDisplay label="Reminder time" time={settings.pillReminderTime} disabled={notifDisabled} />
           )}
 
           <Divider />

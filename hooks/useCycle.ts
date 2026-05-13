@@ -11,7 +11,7 @@ import {
   getBookmarks,
 } from '../lib/db/queries';
 import { calculatePredictions } from '../lib/predictions/algorithm';
-import { scheduleAllNotifications } from '../lib/notifications';
+import { scheduleAllNotifications, getNotificationPermissionStatus } from '../lib/notifications';
 import { todayStr } from '../lib/utils/date';
 import type { DailyLog } from '../types';
 
@@ -49,7 +49,15 @@ export function useCycle() {
         profile?.avgPeriodLength ?? 5,
         bbtReadings
       );
-      if (pred) setPrediction(pred);
+      if (pred) {
+        setPrediction(pred);
+        // Re-schedule notifications if permission is granted
+        getNotificationPermissionStatus().then((status) => {
+          if (status === 'granted') {
+            scheduleAllNotifications(pred, notifications).catch(console.error);
+          }
+        });
+      }
       setLoaded(true);
     } catch (e) {
       setError('Failed to load cycle data. Please restart the app.');

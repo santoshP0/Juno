@@ -16,6 +16,7 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useColors } from '../../hooks/useTheme';
 import { useUserStore } from '../../stores/userStore';
+import { useCycleStore } from '../../stores/cycleStore';
 import { useSQLiteContext } from 'expo-sqlite';
 import { insertCycle, upsertUser } from '../../lib/db/queries';
 import { Colors } from '../../constants/colors';
@@ -27,6 +28,7 @@ export default function CycleInfoScreen() {
   const colors = useColors();
   const db = useSQLiteContext();
   const { profile, updateProfile } = useUserStore();
+  const { addCycle } = useCycleStore();
 
   const [lastPeriod, setLastPeriod] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -83,7 +85,19 @@ export default function CycleInfoScreen() {
       avgPeriodLength: periodNum,
     };
     await upsertUser(db, updatedProfile as any);
-    await insertCycle(db, lastPeriod);
+    const id = await insertCycle(db, lastPeriod);
+    
+    // Update store so predictions can be calculated
+    addCycle({
+      id,
+      startDate: lastPeriod,
+      endDate: null,
+      length: null,
+      periodLength: null,
+      notes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
 
     setError('');
     router.push('/(onboarding)/goal');
