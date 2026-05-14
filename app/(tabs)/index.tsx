@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   ScrollView,
@@ -155,9 +155,14 @@ export default function HomeScreen() {
   const colors = useColors();
   const db = useSQLiteContext();
   const { prediction, reload, cycles, error: cycleError } = useCycle();
-  const { addCycle } = useCycleStore();
+  const { addCycle, isLoaded } = useCycleStore();
   const profile = useUserStore((s) => s.profile);
   const [refreshing, setRefreshing] = React.useState(false);
+
+  // Load cycle data from DB on mount (store is not persisted)
+  useEffect(() => {
+    if (!isLoaded) reload();
+  }, []);
 
   // Keep Android home screen widget in sync
   useWidgetSync(prediction ?? null);
@@ -359,7 +364,7 @@ export default function HomeScreen() {
               </Card>
             </Animated.View>
           </>
-        ) : (
+        ) : isLoaded ? (
           <EmptyState
             emoji="🌱"
             title="Getting started"
@@ -367,7 +372,7 @@ export default function HomeScreen() {
             actionLabel="Log period start"
             onAction={handleLogPeriod}
           />
-        )}
+        ) : null}
 
         {/* ── Quick log ───────────────────────────────────── */}
         <Animated.View entering={FadeInDown.delay(400).duration(500)}>
