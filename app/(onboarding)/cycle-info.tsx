@@ -39,9 +39,9 @@ export default function CycleInfoScreen() {
 
   const quickDates = [
     { label: 'Today', days: 0 },
-    { label: '3 days ago', days: 3 },
-    { label: '1 week ago', days: 7 },
-    { label: '2 weeks ago', days: 14 },
+    { label: '3 days', days: 3 },
+    { label: '1 week', days: 7 },
+    { label: '2 weeks', days: 14 },
   ];
 
   const handleQuickDate = (days: number) => {
