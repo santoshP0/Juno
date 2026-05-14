@@ -23,14 +23,24 @@ export default function Index() {
   const db = useSQLiteContext();
   const colors = useColors();
   const { onboardingComplete, pinEnabled } = useSettingsStore();
+  const [hydrated, setHydrated] = useState(
+    () => useSettingsStore.persist.hasHydrated()
+  );
   const [target, setTarget] = useState<Target | null>(null);
 
+  // Wait for Zustand AsyncStorage hydration before reading onboardingComplete.
+  // Without this, onboardingComplete defaults to false on cold start and
+  // incorrectly routes back to onboarding on every reopen.
   useEffect(() => {
+    if (hydrated) return;
+    const unsub = useSettingsStore.persist.onFinishHydration(() => setHydrated(true));
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
     let cancelled = false;
     const check = async () => {
-      // DB user row is the authoritative signal that onboarding was completed.
-      // This handles stale AsyncStorage state (e.g., wipe DB without clearing
-      // AsyncStorage, or emulator resets).
       const dbUser = await getUser(db);
       if (cancelled) return;
 
@@ -48,7 +58,7 @@ export default function Index() {
     };
     check();
     return () => { cancelled = true; };
-  }, []);
+  }, [hydrated]);
 
   if (!target) {
     return (

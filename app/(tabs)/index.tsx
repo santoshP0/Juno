@@ -5,11 +5,10 @@ import {
   StyleSheet,
   RefreshControl,
   TouchableOpacity,
-  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Droplets, Smile, FileText, Settings, ChevronRight } from 'lucide-react-native';
+import { Droplets, Smile, FileText, Settings } from 'lucide-react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
@@ -29,12 +28,10 @@ import { Spacing, Shadow, Radius } from '../../constants/theme';
 import { useWidgetSync } from '../../hooks/useWidgetSync';
 import { DAILY_INSIGHTS_BY_PHASE } from '../../constants/content';
 import { formatDate, todayStr } from '../../lib/utils/date';
-import { formatDaysUntil } from '../../lib/utils/formatting';
 import { insertCycle } from '../../lib/db/queries';
 import { useCycleStore } from '../../stores/cycleStore';
 import type { CyclePhase } from '../../types';
 
-const { width } = Dimensions.get('window');
 
 const PHASE_GRADIENT: Record<CyclePhase, string[]> = Colors.phaseGradients;
 
@@ -252,10 +249,6 @@ export default function HomeScreen() {
           <>
             {/* ── Cycle Ring Hero ─────────────────────────── */}
             <Animated.View entering={FadeInUp.delay(100).duration(600)} style={styles.heroSection}>
-              {/* Decorative glow behind ring */}
-              <View style={[styles.ringGlow, { backgroundColor: phaseColor + '12' }]} />
-              <View style={[styles.ringGlowOuter, { backgroundColor: phaseColor + '06' }]} />
-
               <CycleRing
                 currentDay={prediction.currentCycleDay}
                 cycleLength={prediction.avgCycleLength}
@@ -340,12 +333,9 @@ export default function HomeScreen() {
             {/* ── Upcoming events ─────────────────────────── */}
             <Animated.View entering={FadeInDown.delay(350).duration(500)}>
               <Card padding={16} style={styles.sectionCard}>
-                <View style={styles.sectionHeader}>
-                  <Typography variant="label" color={colors.textSecondary} style={{ fontWeight: '600' }}>
-                    Upcoming
-                  </Typography>
-                  <ChevronRight size={16} color={colors.textTertiary} />
-                </View>
+                <Typography variant="label" color={colors.textSecondary} style={{ fontWeight: '600', marginBottom: 12 }}>
+                  Upcoming
+                </Typography>
                 <View style={styles.upcomingRow}>
                   <UpcomingCard
                     emoji="🩸"

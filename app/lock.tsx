@@ -51,12 +51,6 @@ export default function LockScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
-        <Typography style={styles.logo}>🌙</Typography>
-        <Typography variant="h2" align="center">Juno</Typography>
-        <Typography variant="body2" color={colors.textSecondary} align="center" style={{ marginTop: 4 }}>
-          Your cycle, your privacy
-        </Typography>
-
         <View style={styles.padWrap}>
           <PinPad
             onComplete={handlePinComplete}
@@ -86,7 +80,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
-  logo: { fontSize: 56, marginBottom: 12 },
-  padWrap: { marginTop: 40, width: '100%' },
+  padWrap: { width: '100%' },
   bioButton: { marginTop: 24, padding: 12 },
 });
