@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emoji: { fontSize: 60 },
+  emoji: { fontSize: 60, lineHeight: 72 },
   footer: {
     paddingHorizontal: Spacing.xl,
     paddingBottom: Spacing.xl,
