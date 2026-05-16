@@ -12,20 +12,25 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, BellOff, Bell, CheckCircle } from 'lucide-react-native';
+import { ChevronLeft, BellOff, Bell, CheckCircle, Plus, Trash2, Calendar as CalendarIcon } from 'lucide-react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Calendar } from 'react-native-calendars';
+import { format, parseISO } from 'date-fns';
+import { Modal } from 'react-native';
 
 import { Typography } from '../../components/ui/Typography';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { useColors } from '../../hooks/useTheme';
+import * as Haptics from 'expo-haptics';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useCycleStore } from '../../stores/cycleStore';
-import {
-  requestNotificationPermission,
-  getNotificationPermissionStatus,
+import { 
+  getNotificationPermissionStatus, 
+  requestNotificationPermission, 
   scheduleAllNotifications,
   cancelAllNotifications,
-} from '../../lib/notifications';
+} from '../../lib/notifications/index';
 import { Colors } from '../../constants/colors';
 import { Spacing, Radius } from '../../constants/theme';
 import type { NotificationSettings } from '../../types';
@@ -70,17 +75,21 @@ function SettingSwitch({
   );
 }
 
-function TimeDisplay({ label, time, disabled }: { label: string; time: string; disabled?: boolean }) {
+function TimeDisplay({ label, time, disabled, onPress }: { label: string; time: string; disabled?: boolean; onPress?: () => void }) {
   const colors = useColors();
   return (
-    <View style={[s.timeRow, disabled && { opacity: 0.5 }]}>
+    <TouchableOpacity 
+      onPress={disabled ? undefined : onPress}
+      activeOpacity={disabled ? 1 : 0.7}
+      style={[s.timeRow, disabled && { opacity: 0.5 }]}
+    >
       <Typography variant="caption" color={colors.textTertiary}>{label}</Typography>
       <View style={[s.timeBadge, { backgroundColor: disabled ? colors.border + '22' : colors.accent + '18', borderColor: disabled ? colors.border : colors.accent + '40' }]}>
         <Typography variant="caption" color={disabled ? colors.textTertiary : colors.accent} style={{ fontWeight: '700' }}>
           {time}
         </Typography>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -115,6 +124,9 @@ export default function NotificationsScreen() {
   const [canAskAgain, setCanAskAgain] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  
+  const [showTimePicker, setShowTimePicker] = useState<{ type: 'log' | 'pill' | 'water'; index?: number } | null>(null);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   useEffect(() => {
     getNotificationPermissionStatus().then((res) => {
@@ -143,31 +155,69 @@ export default function NotificationsScreen() {
     if (permStatus === 'denied' && !canAskAgain) {
       Linking.openSettings();
     } else {
-      const granted = await requestNotificationPermission();
+      await requestNotificationPermission();
       const res = await getNotificationPermissionStatus();
       setPermStatus(res.status);
       setCanAskAgain(res.canAskAgain);
     }
   }, [permStatus, canAskAgain]);
 
+  const onTimeChange = (event: any, selectedDate?: Date) => {
+    setShowTimePicker(null);
+    if (selectedDate && showTimePicker) {
+      const timeStr = format(selectedDate, 'HH:mm');
+      if (showTimePicker.type === 'log') update({ dailyLogTime: timeStr });
+      else if (showTimePicker.type === 'pill') update({ pillReminderTime: timeStr });
+      else if (showTimePicker.type === 'water' && showTimePicker.index !== undefined) {
+        const newTimes = [...(settings.waterReminderTimes || [])];
+        newTimes[showTimePicker.index] = timeStr;
+        update({ waterReminderTimes: newTimes.sort() });
+      }
+    }
+  };
+
+  const addWaterTime = () => {
+    const current = settings.waterReminderTimes || [];
+    update({ waterReminderTimes: [...current, '12:00'].sort() });
+  };
+
+  const removeWaterTime = (index: number) => {
+    const current = settings.waterReminderTimes || [];
+    const newTimes = current.filter((_, i) => i !== index);
+    update({ waterReminderTimes: newTimes });
+  };
+
+  const handleDayPress = (day: any) => {
+    const dateStr = day.dateString;
+    const current = settings.pillReminderDates || [];
+    const updated = current.includes(dateStr)
+      ? current.filter(d => d !== dateStr)
+      : [...current, dateStr].sort();
+    update({ pillReminderDates: updated });
+  };
+
   const handleSave = useCallback(async () => {
     setSaving(true);
     setSaved(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    
     try {
       updateNotifications(settings);
-      await cancelAllNotifications();
-      if (prediction && permStatus === 'granted') {
-        await scheduleAllNotifications(prediction, settings);
-      }
+      // Now always calls scheduleAllNotifications (internally handles null prediction)
+      await scheduleAllNotifications(prediction, settings);
+      
       setSaved(true);
       setTimeout(() => {
         setSaved(false);
         router.back();
       }, 800);
+    } catch (error) {
+      console.error('Failed to save notification settings:', error);
+      Alert.alert('Error', 'Failed to save settings.');
     } finally {
       setSaving(false);
     }
-  }, [settings, prediction, permStatus, updateNotifications, router]);
+  }, [settings, prediction, updateNotifications, router]);
 
   const notifDisabled = permStatus !== 'granted';
 
@@ -281,29 +331,79 @@ export default function NotificationsScreen() {
             disabled={notifDisabled}
           />
           {settings.dailyLogEnabled && (
-            <TimeDisplay label="Reminder time" time={settings.dailyLogTime} disabled={notifDisabled} />
+            <TimeDisplay 
+              label="Reminder time" 
+              time={settings.dailyLogTime} 
+              disabled={notifDisabled}
+              onPress={() => setShowTimePicker({ type: 'log' })}
+            />
           )}
 
           <Divider />
           <SettingSwitch
             label="Pill reminder"
-            subtitle="Daily reminder to take your pill"
+            subtitle={(settings.pillReminderDates?.length ?? 0) > 0 ? `${settings.pillReminderDates?.length} days scheduled` : "Daily reminder to take your pill"}
             value={settings.pillReminderEnabled}
             onValueChange={(v) => update({ pillReminderEnabled: v })}
             disabled={notifDisabled}
           />
           {settings.pillReminderEnabled && (
-            <TimeDisplay label="Reminder time" time={settings.pillReminderTime} disabled={notifDisabled} />
+            <View style={{ gap: 8 }}>
+              <TimeDisplay 
+                label="Reminder time" 
+                time={settings.pillReminderTime} 
+                disabled={notifDisabled}
+                onPress={() => setShowTimePicker({ type: 'pill' })}
+              />
+              <TouchableOpacity 
+                onPress={() => setShowCalendar(true)}
+                style={[s.subBtn, { borderColor: colors.border, backgroundColor: colors.surfaceSecondary }]}
+              >
+                <CalendarIcon size={14} color={colors.accent} />
+                <Typography variant="caption" color={colors.textSecondary}>
+                  {(settings.pillReminderDates?.length ?? 0) > 0 ? "Edit scheduled dates" : "Schedule specific dates (optional)"}
+                </Typography>
+              </TouchableOpacity>
+              {(settings.pillReminderDates?.length ?? 0) > 0 && (
+                <TouchableOpacity onPress={() => update({ pillReminderDates: [] })}>
+                  <Typography variant="caption" color={Colors.error} style={{ marginLeft: 8 }}>Reset to daily</Typography>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
 
           <Divider />
           <SettingSwitch
             label="Water intake reminders"
-            subtitle="3× daily nudges at 10 am, 2 pm, 6 pm"
+            subtitle="Stay hydrated with multiple nudges"
             value={settings.waterReminderEnabled}
             onValueChange={(v) => update({ waterReminderEnabled: v })}
             disabled={notifDisabled}
           />
+          {settings.waterReminderEnabled && (
+            <View style={{ marginTop: 4, gap: 6 }}>
+              {(settings.waterReminderTimes || []).map((time, idx) => (
+                <View key={idx} style={s.waterTimeRow}>
+                  <TimeDisplay 
+                    label={`Reminder #${idx + 1}`} 
+                    time={time} 
+                    disabled={notifDisabled}
+                    onPress={() => setShowTimePicker({ type: 'water', index: idx })}
+                  />
+                  <TouchableOpacity onPress={() => removeWaterTime(idx)} style={{ padding: 8 }}>
+                    <Trash2 size={16} color={Colors.error} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <TouchableOpacity 
+                onPress={addWaterTime}
+                style={[s.addBtn, { borderColor: colors.accent, backgroundColor: colors.accent + '10' }]}
+              >
+                <Plus size={16} color={colors.accent} />
+                <Typography variant="caption" color={colors.accent} style={{ fontWeight: '600' }}>Add reminder</Typography>
+              </TouchableOpacity>
+            </View>
+          )}
         </Card>
 
         {/* No prediction warning */}
@@ -323,6 +423,60 @@ export default function NotificationsScreen() {
           fullWidth
           size="lg"
         />
+
+        {/* Date Picker Modal */}
+        <Modal visible={showCalendar} animationType="slide" transparent>
+          <View style={s.modalOverlay}>
+            <View style={[s.modalContent, { backgroundColor: colors.surface }]}>
+              <View style={s.modalHeader}>
+                <Typography variant="h4">Schedule Pill</Typography>
+                <TouchableOpacity onPress={() => setShowCalendar(false)}>
+                  <Typography color={colors.accent} style={{ fontWeight: '700' }}>Done</Typography>
+                </TouchableOpacity>
+              </View>
+              <Typography variant="caption" color={colors.textTertiary} style={{ marginBottom: 16 }}>
+                Select dates to receive pill reminders. Leave empty for daily reminders.
+              </Typography>
+              <Calendar
+                theme={{
+                  calendarBackground: colors.surface,
+                  textSectionTitleColor: colors.textSecondary,
+                  selectedDayBackgroundColor: colors.accent,
+                  selectedDayTextColor: Colors.white,
+                  todayTextColor: colors.accent,
+                  dayTextColor: colors.text,
+                  textDisabledColor: colors.border,
+                  monthTextColor: colors.text,
+                }}
+                minDate={format(new Date(), 'yyyy-MM-dd')}
+                markedDates={Object.fromEntries(
+                  (settings.pillReminderDates || []).map(d => [d, { selected: true }])
+                )}
+                onDayPress={handleDayPress}
+              />
+            </View>
+          </View>
+        </Modal>
+
+        {showTimePicker && (
+          <DateTimePicker
+            mode="time"
+            is24Hour={true}
+            value={(() => {
+              const [h, m] = (
+                showTimePicker.type === 'log' ? settings.dailyLogTime :
+                showTimePicker.type === 'pill' ? settings.pillReminderTime :
+                (settings.waterReminderTimes || [])[showTimePicker.index ?? 0] || '12:00'
+              ).split(':').map(Number);
+              const d = new Date();
+              d.setHours(h ?? 8, m ?? 0, 0, 0);
+              return d;
+            })()}
+            onChange={onTimeChange}
+          />
+        )}
+
+        <View style={{ marginBottom: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -390,5 +544,47 @@ const s = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: Radius.full,
     borderWidth: 1,
+  },
+  waterTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    marginTop: 8,
+  },
+  subBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 10,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    marginLeft: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: Radius['2xl'],
+    borderTopRightRadius: Radius['2xl'],
+    padding: Spacing.lg,
+    minHeight: '60%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
 });

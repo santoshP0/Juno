@@ -11,9 +11,11 @@ const DEFAULT_NOTIFICATIONS: NotificationSettings = {
   ovulationEnabled: true,
   pillReminderEnabled: false,
   pillReminderTime: '08:00',
+  pillReminderDates: [],
   dailyLogEnabled: false,
   dailyLogTime: '20:00',
   waterReminderEnabled: false,
+  waterReminderTimes: ['10:00', '14:00', '18:00'],
 };
 
 const DEFAULT_SETTINGS: AppSettings = {

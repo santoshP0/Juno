@@ -149,9 +149,11 @@ export interface NotificationSettings {
   ovulationEnabled: boolean;
   pillReminderEnabled: boolean;
   pillReminderTime: string;
+  pillReminderDates: string[]; // ISO strings for one-off or scheduled dates
   dailyLogEnabled: boolean;
   dailyLogTime: string;
   waterReminderEnabled: boolean;
+  waterReminderTimes: string[]; // HH:mm format
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────────

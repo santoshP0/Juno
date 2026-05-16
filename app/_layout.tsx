@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { View, StyleSheet, AppState, AppStateStatus } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { SQLiteProvider, useSQLiteContext } from 'expo-sqlite';
@@ -30,6 +30,9 @@ function AppGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const colors = useColors();
   const { pinEnabled, autoLockMinutes } = useSettingsStore();
+  // Tracks last processed response id to prevent double-firing
+  // (listener fires when backgrounded; getLastNotificationResponseAsync fires on relaunch)
+  const lastHandledRef = useRef<string | null>(null);
 
   // Auto-lock on foreground resume
   useEffect(() => {
@@ -47,28 +50,47 @@ function AppGuard({ children }: { children: React.ReactNode }) {
 
   // Notification tap/action → handle logic & navigate
   const db = useSQLiteContext();
-  useEffect(() => {
-    const sub = Notifications.addNotificationResponseReceivedListener(async (response) => {
+  
+  const processNotificationResponse = useCallback(async (response: Notifications.NotificationResponse) => {
+    const dedupKey = `${response.notification.request.identifier}::${response.actionIdentifier}`;
+    if (lastHandledRef.current === dedupKey) return;
+    lastHandledRef.current = dedupKey;
+
+    try {
       const actionId = response.actionIdentifier;
-      
-      // 1. Handle background data logic (logging pill, water, etc.)
-      if (actionId !== Notifications.DEFAULT_ACTION_IDENTIFIER) {
+      const isTap = actionId === Notifications.DEFAULT_ACTION_IDENTIFIER;
+
+      if (!isTap) {
         await handleNotificationAction(db, response);
       }
 
-      // 2. Handle navigation
-      if (actionId === NOTIF_ACTION.PERIOD_STARTED) {
-        const expectedStart = response.notification.request.content.data?.expectedStart;
-        if (expectedStart) {
-          router.push(`/log/${expectedStart}`);
-          return;
+      if (isTap || actionId === NOTIF_ACTION.PERIOD_STARTED || actionId === NOTIF_ACTION.LOG_NOW) {
+        if (actionId === NOTIF_ACTION.PERIOD_STARTED) {
+          const expectedStart = response.notification.request.content.data?.expectedStart;
+          if (expectedStart) {
+            router.push(`/log/${expectedStart}`);
+            return;
+          }
         }
+        router.push('/');
       }
+    } catch (err) {
+      console.error('[Notification] Error in processing:', err);
+    }
+  }, [db, router]);
 
-      router.push('/(tabs)/');
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener(processNotificationResponse);
+
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) {
+        processNotificationResponse(response);
+        Notifications.clearLastNotificationResponseAsync?.();
+      }
     });
+
     return () => sub.remove();
-  }, [db]);
+  }, [processNotificationResponse]);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>

@@ -10,7 +10,12 @@ const migrations: Migration[] = [
   {
     version: 2,
     up: async (db) => {
-      await db.execAsync(`ALTER TABLE daily_logs ADD COLUMN pill_taken INTEGER DEFAULT 0;`);
+      // ALTER TABLE has no IF NOT EXISTS in SQLite — catch duplicate column error
+      try {
+        await db.execAsync(`ALTER TABLE daily_logs ADD COLUMN pill_taken INTEGER DEFAULT NULL;`);
+      } catch {
+        // Column already exists — safe to ignore
+      }
     },
   },
 ];
