@@ -9,6 +9,7 @@ import { Typography } from '../../components/ui/Typography';
 import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { ThemePicker } from '../../components/ui/ThemePicker';
 import { ConfirmModal } from '../../components/widgets/ConfirmModal';
 import { useColors } from '../../hooks/useTheme';
 import { useUserStore } from '../../stores/userStore';
@@ -18,14 +19,14 @@ import { upsertUser, deleteAllData } from '../../lib/db/queries';
 import { Colors } from '../../constants/colors';
 import { Spacing, Radius } from '../../constants/theme';
 import { APP_MODES } from '../../constants/content';
-import type { AppMode, WeightUnit, HeightUnit } from '../../types';
+import type { AppMode, WeightUnit, HeightUnit, AccentThemeKey } from '../../types';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const colors = useColors();
   const db = useSQLiteContext();
   const { profile, updateProfile, clearProfile } = useUserStore();
-  const { setMode, setWeightUnit, resetSettings } = useSettingsStore();
+  const { setMode, setWeightUnit, setAccentTheme, accentTheme, resetSettings } = useSettingsStore();
   const { reset: resetCycles } = useCycleStore();
 
   const [name, setName] = useState(profile?.name ?? '');
@@ -85,8 +86,8 @@ export default function SettingsScreen() {
             style={[
               s.unitBtn,
               {
-                backgroundColor: value === o.key ? Colors.dustyRose : colors.surfaceSecondary,
-                borderColor: value === o.key ? Colors.dustyRose : colors.border,
+                backgroundColor: value === o.key ? colors.accent : colors.surfaceSecondary,
+                borderColor: value === o.key ? colors.accent : colors.border,
               },
             ]}
           >
@@ -191,8 +192,8 @@ export default function SettingsScreen() {
               style={[
                 s.modeOption,
                 {
-                  borderColor: mode === m.key ? Colors.dustyRose : colors.border,
-                  backgroundColor: mode === m.key ? Colors.dustyRose + '11' : 'transparent',
+                  borderColor: mode === m.key ? colors.accent : colors.border,
+                  backgroundColor: mode === m.key ? colors.accent + '11' : 'transparent',
                 },
               ]}
             >
@@ -206,13 +207,21 @@ export default function SettingsScreen() {
                 style={[
                   s.radio,
                   {
-                    borderColor: mode === m.key ? Colors.dustyRose : colors.border,
-                    backgroundColor: mode === m.key ? Colors.dustyRose : 'transparent',
+                    borderColor: mode === m.key ? colors.accent : colors.border,
+                    backgroundColor: mode === m.key ? colors.accent : 'transparent',
                   },
                 ]}
               />
             </TouchableOpacity>
           ))}
+        </Card>
+
+        {/* Appearance */}
+        <Card padding={16}>
+          <ThemePicker
+            value={accentTheme ?? 'rose'}
+            onChange={(key: AccentThemeKey) => setAccentTheme(key)}
+          />
         </Card>
 
         <Button label="Save changes" onPress={handleSave} loading={saving} fullWidth size="lg" />

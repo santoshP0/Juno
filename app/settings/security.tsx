@@ -117,7 +117,7 @@ export default function SecurityScreen() {
             <Switch
               value={pinEnabled}
               onValueChange={handleTogglePin}
-              trackColor={{ false: colors.border, true: Colors.dustyRose }}
+              trackColor={{ false: colors.border, true: colors.accent }}
               thumbColor={Colors.white}
             />
           </View>
@@ -159,10 +159,10 @@ export default function SecurityScreen() {
                         {
                           backgroundColor:
                             autoLockMinutes === mins
-                              ? Colors.dustyRose
+                              ? colors.accent
                               : colors.surfaceSecondary,
                           borderColor:
-                            autoLockMinutes === mins ? Colors.dustyRose : colors.border,
+                            autoLockMinutes === mins ? colors.accent : colors.border,
                         },
                       ]}
                     >

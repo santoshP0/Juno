@@ -1,5 +1,5 @@
 export const Colors = {
-  // Brand palette
+  // Brand palette (static, non-themed)
   dustyRose: '#FF2D78',
   dustyRoseLight: '#FF80AB',
   dustyRoseDark: '#C2185B',
@@ -29,23 +29,23 @@ export const Colors = {
   error: '#F43F5E',
   info: '#60A5FA',
 
-  // Pure whites used for selected-state text/icons
+  // Pure whites
   white: '#FFFFFF',
 
-  // Transparent overlays (semantic names > raw rgba)
+  // Transparent overlays
   overlay: 'rgba(0,0,0,0.4)',
   dividerLight: 'rgba(0,0,0,0.06)',
   dividerDark: 'rgba(0,0,0,0.08)',
 
-  // Phase colors
+  // Phase colors (semantic — always fixed, represent biology not theme)
   phases: {
-    menstrual: '#FF2D78',
-    follicular: '#A78BFA',
-    ovulation: '#34D399',
-    luteal: '#F472B6',
+    menstrual: '#FF5C8D',
+    follicular: '#9D7AF5',
+    ovulation: '#2CC98B',
+    luteal: '#E879A0',
   },
 
-  // Phase gradient pairs  [start, end]
+  // Phase gradient pairs [start, end]
   phaseGradients: {
     menstrual:  ['#FF5C8D', '#FF8FB3'] as [string, string],
     follicular: ['#9D7AF5', '#C4B5FD'] as [string, string],
@@ -68,7 +68,7 @@ export const Colors = {
     depressed:   '#374151',
   },
 
-  // Article / content category colors
+  // Article category colors (semantic — fixed per category)
   articleCategories: {
     cycle_basics:      '#FF2D78',
     health_conditions: '#F43F5E',
@@ -81,7 +81,7 @@ export const Colors = {
     ttc:               '#C2185B',
   },
 
-  // Calendar day colors
+  // Calendar day colors (semantic — fixed)
   calendar: {
     period: '#FF2D78',
     periodPredicted: '#FF80AB',
@@ -92,36 +92,36 @@ export const Colors = {
     logged: '#A78BFA',
   },
 
-  // Light theme
+  // Light theme base — neutral, overridden by accent theme in useColors()
   light: {
-    background: '#FFF5F8',
+    background: '#FAFAFA',
     surface: '#FFFFFF',
-    surfaceSecondary: '#FFEEF4',
-    text: '#1A0614',
-    textSecondary: '#6B2B4D',
-    textTertiary: '#B06080',
-    border: '#FFD6E8',
-    borderLight: '#FFE8F2',
-    icon: '#1A0614',
+    surfaceSecondary: '#F5F5FA',
+    text: '#1A1A2E',
+    textSecondary: '#555570',
+    textTertiary: '#8888A0',
+    border: '#E5E5F0',
+    borderLight: '#EEEEEE',
+    icon: '#1A1A2E',
     tabBar: '#FFFFFF',
     tabBarActive: '#FF2D78',
-    tabBarInactive: '#C48BAA',
+    tabBarInactive: '#8888A0',
   },
 
-  // Dark theme
+  // Dark theme base — neutral, overridden by accent theme in useColors()
   dark: {
     background: '#0A0A0F',
-    surface: '#15101E',
-    surfaceSecondary: '#1F1630',
-    text: '#F8E8F0',
-    textSecondary: '#D4A0BB',
-    textTertiary: '#8B5A73',
-    border: '#2D1A2A',
-    borderLight: '#1A0F18',
-    icon: '#F8E8F0',
+    surface: '#141420',
+    surfaceSecondary: '#1C1C2A',
+    text: '#F0F0F8',
+    textSecondary: '#9898B0',
+    textTertiary: '#5A5A72',
+    border: '#252535',
+    borderLight: '#1A1A28',
+    icon: '#F0F0F8',
     tabBar: '#0A0A0F',
     tabBarActive: '#FF2D78',
-    tabBarInactive: '#5A3D50',
+    tabBarInactive: '#505068',
   },
 } as const;
 

@@ -34,7 +34,7 @@ export function MoodSelector({ selected, onToggle }: MoodSelectorProps) {
     <View style={styles.grid}>
       {MOODS.map((m) => {
         const isSelected = selected.includes(m.key);
-        const moodColor = MOOD_COLORS[m.key] ?? Colors.dustyRose;
+        const moodColor = MOOD_COLORS[m.key] ?? colors.accent;
         return (
           <TouchableOpacity
             key={m.key}

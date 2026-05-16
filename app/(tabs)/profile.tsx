@@ -36,8 +36,8 @@ function MenuItem({ icon: Icon, iconColor, label, subtitle, onPress, rightElemen
   const colors = useColors();
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={styles.menuItem}>
-      <View style={[styles.iconBox, { backgroundColor: (iconColor ?? Colors.dustyRose) + '22' }]}>
-        <Icon size={18} color={iconColor ?? Colors.dustyRose} strokeWidth={2} />
+      <View style={[styles.iconBox, { backgroundColor: (iconColor ?? colors.accent) + '22' }]}>
+        <Icon size={18} color={iconColor ?? colors.accent} strokeWidth={2} />
       </View>
       <View style={styles.menuText}>
         <Typography variant="body">{label}</Typography>
@@ -73,8 +73,8 @@ function ThemeToggle() {
             style={[
               styles.themeBtn,
               {
-                backgroundColor: selected ? Colors.dustyRose : colors.surfaceSecondary,
-                borderColor: selected ? Colors.dustyRose : colors.border,
+                backgroundColor: selected ? colors.accent : colors.surfaceSecondary,
+                borderColor: selected ? colors.accent : colors.border,
               },
             ]}
           >
@@ -120,7 +120,7 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Profile hero */}
         <View style={styles.hero}>
-          <View style={[styles.avatar, { backgroundColor: Colors.dustyRose + '33' }]}>
+          <View style={[styles.avatar, { backgroundColor: colors.accent + '33' }]}>
             <Typography style={{ fontSize: 40 }}>🌙</Typography>
           </View>
           <Typography variant="h3">{profile?.name || 'Your profile'}</Typography>
@@ -187,7 +187,7 @@ export default function ProfileScreen() {
           </Typography>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Typography variant="h3" color={Colors.dustyRose}>
+              <Typography variant="h3" color={colors.accent}>
                 {profile?.avgCycleLength ?? 28}
               </Typography>
               <Typography variant="caption" color={colors.textTertiary}>

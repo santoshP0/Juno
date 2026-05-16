@@ -94,7 +94,7 @@ export default function InsightsScreen() {
         .map((c) => ({
           value: c.length!,
           label: format(parseISO(c.startDate), 'MMM'),
-          frontColor: Colors.dustyRose,
+          frontColor: colors.accent,
         })),
     [filteredCycles]
   );
@@ -168,7 +168,7 @@ export default function InsightsScreen() {
               style={[
                 styles.rangeBtn,
                 {
-                  backgroundColor: range === r.key ? Colors.dustyRose : 'transparent',
+                  backgroundColor: range === r.key ? colors.accent : 'transparent',
                 },
               ]}
             >
@@ -197,7 +197,7 @@ export default function InsightsScreen() {
                 label="Avg cycle"
                 value={avgCycleLength ?? '—'}
                 unit="days"
-                color={Colors.dustyRose}
+                color={colors.accent}
               />
               <StatCard
                 label="Avg period"
@@ -321,9 +321,9 @@ export default function InsightsScreen() {
             {avgCycleLength && (
               <Card
                 padding={16}
-                style={{ borderLeftWidth: 4, borderLeftColor: Colors.dustyRose }}
+                style={{ borderLeftWidth: 4, borderLeftColor: colors.accent }}
               >
-                <Typography variant="label" color={Colors.dustyRose} style={{ marginBottom: 6 }}>
+                <Typography variant="label" color={colors.accent} style={{ marginBottom: 6 }}>
                   ✨ Juno insight
                 </Typography>
                 <Typography variant="body2" color={colors.textSecondary}>

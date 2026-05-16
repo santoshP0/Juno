@@ -22,7 +22,11 @@ export function Card({ children, style, padding = Spacing.md, shadow = 'sm' }: C
           padding,
           borderColor: colors.border,
         },
-        shadow !== 'none' && Shadow[shadow],
+        shadow !== 'none' && {
+          ...Shadow[shadow],
+          shadowColor: colors.accent,
+          shadowOpacity: 0.12,
+        },
         style,
       ]}
     >

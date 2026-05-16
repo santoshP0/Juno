@@ -61,10 +61,10 @@ function FlowSelector({
   const colors = useColors();
   const OPTIONS: { key: FlowLevel; label: string; color: string }[] = [
     { key: 'none', label: 'None', color: colors.border },
-    { key: 'spotting', label: 'Spotting', color: Colors.dustyRoseLight },
-    { key: 'light', label: 'Light', color: Colors.dustyRose + 'AA' },
-    { key: 'medium', label: 'Medium', color: Colors.dustyRose },
-    { key: 'heavy', label: 'Heavy', color: Colors.dustyRoseDark },
+    { key: 'spotting', label: 'Spotting', color: colors.accentLight },
+    { key: 'light', label: 'Light', color: colors.accent + 'AA' },
+    { key: 'medium', label: 'Medium', color: colors.accent },
+    { key: 'heavy', label: 'Heavy', color: colors.accentDark },
   ];
   return (
     <View style={s.flowRow}>
@@ -396,7 +396,7 @@ export default function LogScreen() {
           <TouchableOpacity
             onPress={handleSave}
             disabled={saving}
-            style={[s.saveBtn, { backgroundColor: Colors.dustyRose }]}
+            style={[s.saveBtn, { backgroundColor: colors.accent }]}
           >
             <Check size={18} color={Colors.white} />
           </TouchableOpacity>

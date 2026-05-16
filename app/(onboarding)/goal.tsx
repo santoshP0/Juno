@@ -88,7 +88,7 @@ export default function GoalScreen() {
                   styles.option,
                   {
                     backgroundColor: colors.surface,
-                    borderColor: isSelected ? Colors.dustyRose : colors.border,
+                    borderColor: isSelected ? colors.accent : colors.border,
                     borderWidth: isSelected ? 2 : 1,
                   },
                   isSelected && Shadow.sm,
@@ -107,8 +107,8 @@ export default function GoalScreen() {
                   style={[
                     styles.radio,
                     {
-                      borderColor: isSelected ? Colors.dustyRose : colors.border,
-                      backgroundColor: isSelected ? Colors.dustyRose : 'transparent',
+                      borderColor: isSelected ? colors.accent : colors.border,
+                      backgroundColor: isSelected ? colors.accent : 'transparent',
                     },
                   ]}
                 />

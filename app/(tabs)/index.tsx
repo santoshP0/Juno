@@ -33,8 +33,6 @@ import { useCycleStore } from '../../stores/cycleStore';
 import type { CyclePhase } from '../../types';
 
 
-const PHASE_GRADIENT: Record<CyclePhase, string[]> = Colors.phaseGradients;
-
 const PHASE_LABELS: Record<CyclePhase, string> = {
   menstrual: 'Menstrual',
   follicular: 'Follicular',
@@ -209,7 +207,7 @@ export default function HomeScreen() {
     return name ? `${timeGreeting}, ${name} ✨` : `${timeGreeting} ✨`;
   }, [profile?.name]);
 
-  const phaseColor = prediction ? PHASE_GRADIENT[prediction.currentPhase][0] : Colors.dustyRose;
+  const phaseColor = colors.accent;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -219,8 +217,8 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={Colors.dustyRose}
-            colors={[Colors.dustyRose]}
+            tintColor={colors.accent}
+            colors={[colors.accent]}
           />
         }
         showsVerticalScrollIndicator={false}
@@ -346,7 +344,7 @@ export default function HomeScreen() {
                     emoji="🩸"
                     label="Period"
                     dateStr={formatDate(prediction.nextPeriodStart, 'MMM d')}
-                    color={Colors.dustyRose}
+                    color={colors.accent}
                   />
                   <UpcomingCard
                     emoji="🌿"
@@ -388,7 +386,7 @@ export default function HomeScreen() {
               <QuickLogButton
                 icon={Droplets}
                 label="Period"
-                color={Colors.dustyRose}
+                color={colors.accent}
                 onPress={handleLogPeriod}
               />
               <QuickLogButton

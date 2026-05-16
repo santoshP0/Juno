@@ -22,8 +22,6 @@ interface CycleRingProps {
   size?: number;
 }
 
-const PHASE_COLORS: Record<CyclePhase, [string, string]> = Colors.phaseGradients;
-
 const PHASE_LABELS: Record<CyclePhase, string> = {
   menstrual:  'Menstrual',
   follicular: 'Follicular',
@@ -57,7 +55,8 @@ export function CycleRing({
   const circumference = 2 * Math.PI * radius;
   const center = size / 2;
 
-  const [colorA, colorB] = PHASE_COLORS[phase];
+  const colorA = colors.accent;
+  const colorB = colors.accentLight;
   const gradId = `grad-${phase}`;
 
   // Animate progress
@@ -85,9 +84,8 @@ export function CycleRing({
     ([p, frac]) => {
       const angle = frac * 360;
       const pos = polarToCartesian(center, center, markerRadius, angle);
-      const [mc] = PHASE_COLORS[p];
       const isActive = p === phase;
-      return { phase: p, ...pos, color: mc, isActive };
+      return { phase: p, ...pos, color: colorA, isActive };
     }
   );
 

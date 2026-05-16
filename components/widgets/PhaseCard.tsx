@@ -18,8 +18,8 @@ export function PhaseCard({ phase, compact = false }: PhaseCardProps) {
   const info = PHASE_INFO[phase];
 
   return (
-    <Card style={[styles.card, { borderLeftColor: info.color, borderLeftWidth: 4 }]}>
-      <Typography variant="label" color={info.color} style={{ marginBottom: 4 }}>
+    <Card style={[styles.card, { borderLeftColor: colors.accent, borderLeftWidth: 4 }]}>
+      <Typography variant="label" color={colors.accent} style={{ marginBottom: 4 }}>
         {info.name}
       </Typography>
       <Typography variant="body2" color={colors.textSecondary}>
@@ -30,7 +30,7 @@ export function PhaseCard({ phase, compact = false }: PhaseCardProps) {
         <View style={styles.tips}>
           {info.tips.map((tip, i) => (
             <View key={i} style={styles.tip}>
-              <View style={[styles.tipDot, { backgroundColor: info.color }]} />
+              <View style={[styles.tipDot, { backgroundColor: colors.accent }]} />
               <Typography variant="caption" color={colors.textSecondary} style={{ flex: 1 }}>
                 {tip}
               </Typography>

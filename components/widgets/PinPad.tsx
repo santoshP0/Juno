@@ -88,8 +88,8 @@ export function PinPad({ onComplete, title = 'Enter PIN', subtitle, error }: Pin
               styles.dot,
               {
                 backgroundColor:
-                  i < pin.length ? Colors.dustyRose : colors.border,
-                borderColor: i < pin.length ? Colors.dustyRose : colors.border,
+                  i < pin.length ? colors.accent : colors.border,
+                borderColor: i < pin.length ? colors.accent : colors.border,
               },
             ]}
           />

@@ -20,10 +20,11 @@ function TabBarIcon({
   size: number;
   focused: boolean;
 }) {
+  const colors = useColors();
   return (
     <View style={styles.iconWrap}>
       {focused && (
-        <View style={[styles.activeIndicator, { backgroundColor: Colors.dustyRose + '22' }]} />
+        <View style={[styles.activeIndicator, { backgroundColor: colors.accent + '22' }]} />
       )}
       <Icon
         color={color}
@@ -31,7 +32,7 @@ function TabBarIcon({
         strokeWidth={focused ? 2.4 : 1.8}
       />
       {focused && (
-        <View style={[styles.activeDot, { backgroundColor: Colors.dustyRose }]} />
+        <View style={[styles.activeDot, { backgroundColor: colors.accent }]} />
       )}
     </View>
   );
@@ -56,16 +57,16 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.dustyRose,
+        tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.tabBarInactive,
         tabBarStyle: {
           backgroundColor: colors.tabBar,
-          borderTopColor: Colors.dustyRose + '20',
+          borderTopColor: colors.accent + '20',
           borderTopWidth: 1,
           height: 70,
           paddingBottom: 10,
           paddingTop: 6,
-          shadowColor: Colors.dustyRose,
+          shadowColor: colors.accent,
           shadowOffset: { width: 0, height: -4 },
           shadowOpacity: 0.08,
           shadowRadius: 16,

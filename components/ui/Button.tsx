@@ -57,13 +57,13 @@ export function Button({
   const getVariantStyles = (): { bg: string; text: string; border?: string } => {
     switch (variant) {
       case 'primary':
-        return { bg: Colors.dustyRose, text: Colors.white };
+        return { bg: colors.accent, text: Colors.white };
       case 'secondary':
         return { bg: Colors.sage, text: Colors.plum };
       case 'outline':
         return { bg: 'transparent', text: colors.text, border: colors.border };
       case 'ghost':
-        return { bg: 'transparent', text: Colors.dustyRose };
+        return { bg: 'transparent', text: colors.accent };
       case 'danger':
         return { bg: Colors.error, text: Colors.white };
     }

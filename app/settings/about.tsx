@@ -57,7 +57,7 @@ export default function AboutScreen() {
         {/* Mission */}
         <Card padding={16}>
           <View style={s.row}>
-            <Heart size={20} color={Colors.dustyRose} />
+            <Heart size={20} color={colors.accent} />
             <Typography variant="label">Our mission</Typography>
           </View>
           <Typography variant="body2" color={colors.textSecondary} style={{ marginTop: 10, lineHeight: 22 }}>

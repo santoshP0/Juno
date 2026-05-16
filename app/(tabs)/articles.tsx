@@ -54,7 +54,7 @@ function ArticleCard({
   onToggleBookmark: () => void;
 }) {
   const colors = useColors();
-  const accentColor = CATEGORY_COLORS[article.category] ?? Colors.dustyRose;
+  const accentColor = CATEGORY_COLORS[article.category] ?? colors.accent;
   const catLabel =
     ARTICLE_CATEGORIES.find((c) => c.key === article.category)?.label ?? article.category;
 
@@ -85,11 +85,11 @@ function ArticleCard({
           </View>
           <TouchableOpacity
             onPress={onToggleBookmark}
-            style={[styles.bookmarkBtn, { backgroundColor: bookmarked ? Colors.dustyRose + '15' : 'transparent' }]}
+            style={[styles.bookmarkBtn, { backgroundColor: bookmarked ? colors.accent + '15' : 'transparent' }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             {bookmarked ? (
-              <BookmarkCheck size={18} color={Colors.dustyRose} />
+              <BookmarkCheck size={18} color={colors.accent} />
             ) : (
               <Bookmark size={18} color={colors.textTertiary} />
             )}
@@ -232,7 +232,7 @@ export default function ArticlesScreen() {
             Shadow.sm,
           ]}
         >
-          <Search size={18} color={Colors.dustyRose} />
+          <Search size={18} color={colors.accent} />
           <TextInput
             value={search}
             onChangeText={setSearch}
@@ -253,8 +253,8 @@ export default function ArticlesScreen() {
             style={[
               styles.catChip,
               {
-                backgroundColor: !selectedCategory ? Colors.dustyRose : colors.surface,
-                borderColor: !selectedCategory ? Colors.dustyRose : colors.border,
+                backgroundColor: !selectedCategory ? colors.accent : colors.surface,
+                borderColor: !selectedCategory ? colors.accent : colors.border,
               },
               !selectedCategory ? Shadow.sm : undefined,
             ]}
@@ -269,7 +269,7 @@ export default function ArticlesScreen() {
           </TouchableOpacity>
           {ARTICLE_CATEGORIES.map((cat) => {
             const active = selectedCategory === cat.key;
-            const catColor = CATEGORY_COLORS[cat.key] ?? Colors.dustyRose;
+            const catColor = CATEGORY_COLORS[cat.key] ?? colors.accent;
             return (
               <TouchableOpacity
                 key={cat.key}

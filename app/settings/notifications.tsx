@@ -62,7 +62,7 @@ function SettingSwitch({
       <Switch
         value={value}
         onValueChange={disabled ? undefined : onValueChange}
-        trackColor={{ false: colors.border, true: disabled ? colors.border : Colors.dustyRose }}
+        trackColor={{ false: colors.border, true: disabled ? colors.border : colors.accent }}
         thumbColor={Colors.white}
         disabled={disabled}
       />
@@ -75,8 +75,8 @@ function TimeDisplay({ label, time, disabled }: { label: string; time: string; d
   return (
     <View style={[s.timeRow, disabled && { opacity: 0.5 }]}>
       <Typography variant="caption" color={colors.textTertiary}>{label}</Typography>
-      <View style={[s.timeBadge, { backgroundColor: disabled ? colors.border + '22' : Colors.dustyRose + '18', borderColor: disabled ? colors.border : Colors.dustyRose + '40' }]}>
-        <Typography variant="caption" color={disabled ? colors.textTertiary : Colors.dustyRose} style={{ fontWeight: '700' }}>
+      <View style={[s.timeBadge, { backgroundColor: disabled ? colors.border + '22' : colors.accent + '18', borderColor: disabled ? colors.border : colors.accent + '40' }]}>
+        <Typography variant="caption" color={disabled ? colors.textTertiary : colors.accent} style={{ fontWeight: '700' }}>
           {time}
         </Typography>
       </View>
@@ -222,8 +222,8 @@ export default function NotificationsScreen() {
                   style={[
                     s.dayBtn,
                     {
-                      backgroundColor: settings.periodSoonDays === d ? (notifDisabled ? colors.border : Colors.dustyRose) : colors.surfaceSecondary,
-                      borderColor: settings.periodSoonDays === d ? (notifDisabled ? colors.border : Colors.dustyRose) : colors.border,
+                      backgroundColor: settings.periodSoonDays === d ? (notifDisabled ? colors.border : colors.accent) : colors.surfaceSecondary,
+                      borderColor: settings.periodSoonDays === d ? (notifDisabled ? colors.border : colors.accent) : colors.border,
                     },
                   ]}
                 >

@@ -28,18 +28,18 @@ export function SymptomChip({ label, selected, onToggle, style }: SymptomChipPro
       style={[
         styles.chip,
         {
-          backgroundColor: selected ? Colors.dustyRose + '20' : colors.surfaceSecondary,
-          borderColor: selected ? Colors.dustyRose : colors.border,
+          backgroundColor: selected ? colors.accent + '20' : colors.surfaceSecondary,
+          borderColor: selected ? colors.accent : colors.border,
         },
         style,
       ]}
     >
       {selected && (
-        <View style={[styles.dot, { backgroundColor: Colors.dustyRose }]} />
+        <View style={[styles.dot, { backgroundColor: colors.accent }]} />
       )}
       <Typography
         variant="label"
-        color={selected ? Colors.dustyRose : colors.textSecondary}
+        color={selected ? colors.accent : colors.textSecondary}
         style={{ fontWeight: selected ? '700' : '500' }}
       >
         {label}

@@ -159,6 +159,7 @@ export type Theme = 'light' | 'dark' | 'auto';
 
 export interface AppSettings {
   theme: Theme;
+  accentTheme: AccentThemeKey;
   weightUnit: WeightUnit;
   heightUnit: HeightUnit;
   tempUnit: TempUnit;
@@ -170,6 +171,8 @@ export interface AppSettings {
   onboardingComplete: boolean;
   mode: AppMode;
 }
+
+export type AccentThemeKey = 'rose' | 'lavender' | 'mint' | 'ocean' | 'peach' | 'marigold';
 
 // ─── Articles ─────────────────────────────────────────────────────────────────
 

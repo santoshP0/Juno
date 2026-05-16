@@ -16,7 +16,7 @@ interface StatCardProps {
 
 export function StatCard({ label, value, unit, trend, color, subtitle }: StatCardProps) {
   const colors = useColors();
-  const accentColor = color ?? Colors.dustyRose;
+  const accentColor = color ?? colors.accent;
 
   const trendSymbol = trend === 'up' ? '↑' : trend === 'down' ? '↓' : null;
   const trendColor = trend === 'up' ? Colors.success : trend === 'down' ? Colors.error : colors.textTertiary;

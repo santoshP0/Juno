@@ -163,7 +163,7 @@ export default function CycleInfoScreen() {
                 styles.datePicker,
                 {
                   backgroundColor: colors.surfaceSecondary,
-                  borderColor: lastPeriod ? Colors.dustyRose : colors.border,
+                  borderColor: lastPeriod ? colors.accent : colors.border,
                   borderWidth: lastPeriod ? 1.5 : 1.5,
                 },
               ]}
@@ -192,7 +192,7 @@ export default function CycleInfoScreen() {
                 <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
                   <View style={styles.modalHeader}>
                     <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                      <Typography variant="label" color={Colors.dustyRose}>Done</Typography>
+                      <Typography variant="label" color={colors.accent}>Done</Typography>
                     </TouchableOpacity>
                   </View>
                   <DateTimePicker

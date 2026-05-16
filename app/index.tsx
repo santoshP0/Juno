@@ -63,7 +63,7 @@ export default function Index() {
   if (!target) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator size="small" color={Colors.dustyRose} />
+        <ActivityIndicator size="small" color={colors.accent} />
       </View>
     );
   }

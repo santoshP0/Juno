@@ -137,8 +137,8 @@ export default function PrivacyScreen() {
           ))}
         </Card>
 
-        <View style={[styles.pledge, { backgroundColor: Colors.dustyRose + '22' }]}>
-          <Typography variant="label" align="center" color={Colors.dustyRoseDark}>
+        <View style={[styles.pledge, { backgroundColor: colors.accent + '22' }]}>
+          <Typography variant="label" align="center" color={colors.accentDark}>
             "Your body data belongs to you, and only you."
           </Typography>
         </View>
@@ -153,23 +153,23 @@ export default function PrivacyScreen() {
               backgroundColor:
                 permStatus === 'granted'
                   ? Colors.success + '18'
-                  : Colors.dustyRose + '14',
+                  : colors.accent + '14',
               borderColor:
                 permStatus === 'granted'
                   ? Colors.success + '50'
-                  : Colors.dustyRose + '50',
+                  : colors.accent + '50',
             },
           ]}
         >
           {permStatus === 'granted' ? (
             <Bell size={20} color={Colors.success} />
           ) : (
-            <BellOff size={20} color={Colors.dustyRose} />
+            <BellOff size={20} color={colors.accent} />
           )}
           <View style={{ flex: 1 }}>
             <Typography
               variant="label"
-              color={permStatus === 'granted' ? Colors.success : Colors.dustyRose}
+              color={permStatus === 'granted' ? Colors.success : colors.accent}
               style={{ fontWeight: '700' }}
             >
               {permStatus === 'granted'

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { AppSettings, Theme, AppMode, NotificationSettings } from '../types';
+import type { AppSettings, Theme, AppMode, NotificationSettings, AccentThemeKey } from '../types';
 
 const DEFAULT_NOTIFICATIONS: NotificationSettings = {
   periodSoonEnabled: true,
@@ -18,6 +18,7 @@ const DEFAULT_NOTIFICATIONS: NotificationSettings = {
 
 const DEFAULT_SETTINGS: AppSettings = {
   theme: 'auto',
+  accentTheme: 'rose',
   weightUnit: 'kg',
   heightUnit: 'cm',
   tempUnit: 'celsius',
@@ -32,6 +33,7 @@ const DEFAULT_SETTINGS: AppSettings = {
 
 interface SettingsState extends AppSettings {
   setTheme: (theme: Theme) => void;
+  setAccentTheme: (accentTheme: AccentThemeKey) => void;
   setMode: (mode: AppMode) => void;
   setOnboardingComplete: (v: boolean) => void;
   setPinEnabled: (v: boolean) => void;
@@ -51,6 +53,7 @@ export const useSettingsStore = create<SettingsState>()(
       ...DEFAULT_SETTINGS,
 
       setTheme: (theme) => set({ theme }),
+      setAccentTheme: (accentTheme) => set({ accentTheme }),
       setMode: (mode) => set({ mode }),
       setOnboardingComplete: (onboardingComplete) => set({ onboardingComplete }),
       setPinEnabled: (pinEnabled) => set({ pinEnabled }),

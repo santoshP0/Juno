@@ -123,8 +123,8 @@ export default function CalendarScreen() {
             <Typography variant="h3">{format(currentMonth, 'MMMM yyyy')}</Typography>
           </View>
           <View style={styles.headerRight}>
-            <TouchableOpacity onPress={goToday} style={styles.todayBtn}>
-              <Typography variant="label" color={Colors.dustyRose}>Today</Typography>
+            <TouchableOpacity onPress={goToday} style={[styles.todayBtn, { borderColor: colors.accent }]}>
+              <Typography variant="label" color={colors.accent}>Today</Typography>
             </TouchableOpacity>
             <TouchableOpacity onPress={goPrev} style={styles.navBtn}>
               <ChevronLeft color={colors.text} size={20} />
@@ -158,7 +158,7 @@ export default function CalendarScreen() {
               textDisabledColor: colors.textTertiary,
               dotColor: Colors.sage,
               selectedDotColor: Colors.white,
-              arrowColor: Colors.dustyRose,
+              arrowColor: colors.accent,
               disabledArrowColor: colors.textTertiary,
               'stylesheet.calendar.header': {
                 header: { display: 'none' },
@@ -175,7 +175,7 @@ export default function CalendarScreen() {
           onPress={() => setShowLegend((v) => !v)}
           style={styles.legendToggle}
         >
-          <Typography variant="label" color={Colors.dustyRose}>
+          <Typography variant="label" color={colors.accent}>
             {showLegend ? 'Hide legend' : 'Show legend'}
           </Typography>
         </TouchableOpacity>
@@ -218,7 +218,7 @@ export default function CalendarScreen() {
             </View>
           ) : (
             <TouchableOpacity onPress={() => router.push(`/log/${today}`)}>
-              <Typography variant="body2" color={Colors.dustyRose}>
+              <Typography variant="body2" color={colors.accent}>
                 Tap to log today →
               </Typography>
             </TouchableOpacity>
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
   },
   headerLeft: {},
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  todayBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: Colors.dustyRose },
+  todayBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
   navBtn: { padding: 6 },
   calCard: { borderRadius: Radius.xl },
   legendToggle: { alignSelf: 'flex-end', paddingVertical: 4 },

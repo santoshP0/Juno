@@ -42,7 +42,7 @@ function renderMarkdown(content: string, colors: ReturnType<typeof useColors>) {
     } else if (line.startsWith('- ') || line.startsWith('• ')) {
       elements.push(
         <View key={key++} style={styles.bullet}>
-          <View style={[styles.bulletDot, { backgroundColor: Colors.dustyRose }]} />
+          <View style={[styles.bulletDot, { backgroundColor: colors.accent }]} />
           <Typography variant="body2" color={colors.textSecondary} style={{ flex: 1 }}>
             {line.slice(2)}
           </Typography>
@@ -101,7 +101,7 @@ export default function ArticleScreen() {
         </TouchableOpacity>
         <TouchableOpacity onPress={handleToggleBookmark} style={styles.bookmarkBtn}>
           {isBookmarked ? (
-            <BookmarkCheck size={22} color={Colors.dustyRose} />
+            <BookmarkCheck size={22} color={colors.accent} />
           ) : (
             <Bookmark size={22} color={colors.textTertiary} />
           )}
@@ -110,8 +110,8 @@ export default function ArticleScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Category badge */}
-        <View style={[styles.badge, { backgroundColor: Colors.dustyRose + '22' }]}>
-          <Typography variant="caption" color={Colors.dustyRoseDark} style={{ fontWeight: '600' }}>
+        <View style={[styles.badge, { backgroundColor: colors.accent + '22' }]}>
+          <Typography variant="caption" color={colors.accentDark} style={{ fontWeight: '600' }}>
             {categoryLabel}
           </Typography>
         </View>

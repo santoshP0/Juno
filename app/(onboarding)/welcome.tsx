@@ -71,9 +71,9 @@ export default function WelcomeScreen() {
           const index = Math.round(e.nativeEvent.contentOffset.x / width);
           setActiveIndex(index);
         }}
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <Animated.View entering={FadeIn} style={[styles.slide, { width }]}>
-            <View style={[styles.emojiCircle, { backgroundColor: item.bg }]}>
+            <View style={[styles.emojiCircle, { backgroundColor: index === 0 ? colors.accentLight : item.bg }]}>
               <Typography style={styles.emoji}>{item.emoji}</Typography>
             </View>
             <Typography variant="h2" align="center" style={{ marginTop: Spacing.xl }}>
@@ -101,7 +101,7 @@ export default function WelcomeScreen() {
                 styles.dot,
                 {
                   backgroundColor:
-                    i === activeIndex ? Colors.dustyRose : colors.border,
+                    i === activeIndex ? colors.accent : colors.border,
                   width: i === activeIndex ? 24 : 8,
                 },
               ]}

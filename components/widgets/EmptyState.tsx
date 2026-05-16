@@ -26,9 +26,9 @@ export function EmptyState({
   return (
     <View style={styles.container}>
       {/* Decorative rings */}
-      <View style={[styles.outerRing, { borderColor: Colors.dustyRose + '15' }]}>
-        <View style={[styles.innerRing, { borderColor: Colors.dustyRose + '25' }]}>
-          <View style={[styles.emojiCircle, { backgroundColor: Colors.dustyRose + '18' }]}>
+      <View style={[styles.outerRing, { borderColor: colors.accent + '15' }]}>
+        <View style={[styles.innerRing, { borderColor: colors.accent + '25' }]}>
+          <View style={[styles.emojiCircle, { backgroundColor: colors.accent + '18' }]}>
             <Typography style={styles.emoji}>{emoji}</Typography>
           </View>
         </View>

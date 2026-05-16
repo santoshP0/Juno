@@ -11,15 +11,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../components/ui/Typography';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { ThemePicker } from '../../components/ui/ThemePicker';
 import { useColors } from '../../hooks/useTheme';
 import { useUserStore } from '../../stores/userStore';
+import { useSettingsStore } from '../../stores/settingsStore';
 import { Colors } from '../../constants/colors';
 import { Spacing } from '../../constants/theme';
+import type { AccentThemeKey } from '../../types';
 
 export default function InfoScreen() {
   const router = useRouter();
   const colors = useColors();
   const { profile, updateProfile } = useUserStore();
+  const { accentTheme, setAccentTheme } = useSettingsStore();
 
   const [name, setName] = useState(profile?.name ?? '');
   const [birthYear, setBirthYear] = useState(
@@ -97,6 +101,11 @@ export default function InfoScreen() {
               {error}
             </Typography>
           ) : null}
+
+          <ThemePicker
+            value={accentTheme ?? 'rose'}
+            onChange={(key: AccentThemeKey) => setAccentTheme(key)}
+          />
         </ScrollView>
 
         <View style={styles.footer}>

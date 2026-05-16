@@ -91,8 +91,8 @@ export default function BackupScreen() {
           </Typography>
 
           <View style={s.optionRow}>
-            <View style={[s.iconBox, { backgroundColor: Colors.dustyRose + '22' }]}>
-              <Download size={20} color={Colors.dustyRose} />
+            <View style={[s.iconBox, { backgroundColor: colors.accent + '22' }]}>
+              <Download size={20} color={colors.accent} />
             </View>
             <View style={{ flex: 1 }}>
               <Typography variant="body">Export backup (JSON)</Typography>

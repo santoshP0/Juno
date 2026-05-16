@@ -62,7 +62,7 @@ export default function LockScreen() {
 
         {canBiometric && biometricEnabled && (
           <TouchableOpacity onPress={tryBiometric} style={styles.bioButton}>
-            <Typography variant="label" color={Colors.dustyRose} align="center">
+            <Typography variant="label" color={colors.accent} align="center">
               Use biometric instead
             </Typography>
           </TouchableOpacity>
