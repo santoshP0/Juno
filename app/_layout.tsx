@@ -79,7 +79,9 @@ export default function RootLayout() {
               screenOptions={{
                 headerShown: false,
                 contentStyle: { backgroundColor: colors.background },
-                animation: 'ios_from_right',
+                animation: 'slide_from_right',
+                gestureEnabled: true,
+                fullScreenGestureEnabled: true,
               }}
             >
               <Stack.Screen name="index" options={{ animation: 'none' }} />
