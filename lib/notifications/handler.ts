@@ -58,7 +58,6 @@ export async function handleNotificationAction(
           pillTaken: actionId === NOTIF_ACTION.PILL_TAKEN,
         });
         await upsertLog(db, logData);
-        console.log('[NotifHandler] Pill upserted, pillTaken:', logData.pillTaken);
 
         const saved = await getLogByDate(db, todayStr());
         if (saved) useCycleStore.getState().upsertLog(saved);
