@@ -1,10 +1,10 @@
-import React, { useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { View, StyleSheet, AppState, AppStateStatus } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { SQLiteProvider, useSQLiteContext } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import * as Notifications from 'expo-notifications';
+import notifee, { EventType } from '@notifee/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import '../global.css';
@@ -12,27 +12,18 @@ import '../global.css';
 import { initializeDatabase } from '../lib/db/schema';
 import { runMigrations } from '../lib/db/migrations';
 import { setupNotificationChannels, NOTIF_ACTION } from '../lib/notifications';
-import { handleNotificationAction } from '../lib/notifications/handler';
+import { handleNotifeeAction } from '../lib/notifications/handler';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useTheme, useColors } from '../hooks/useTheme';
 import { onAppBackground, checkShouldLock } from '../hooks/useAppLock';
 
 SplashScreen.preventAutoHideAsync();
 
-/**
- * AppGuard handles cross-cutting concerns:
- *   • Background/foreground auto-lock
- *   • Notification tap → home screen
- *
- * Routing logic lives in app/index.tsx (cleaner, no flash).
- */
 function AppGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const colors = useColors();
   const { pinEnabled, autoLockMinutes } = useSettingsStore();
-  // Tracks last processed response id to prevent double-firing
-  // (listener fires when backgrounded; getLastNotificationResponseAsync fires on relaunch)
-  const lastHandledRef = useRef<string | null>(null);
+  const db = useSQLiteContext();
 
   // Auto-lock on foreground resume
   useEffect(() => {
@@ -48,49 +39,57 @@ function AppGuard({ children }: { children: React.ReactNode }) {
     return () => sub.remove();
   }, [pinEnabled, autoLockMinutes]);
 
-  // Notification tap/action → handle logic & navigate
-  const db = useSQLiteContext();
-  
-  const processNotificationResponse = useCallback(async (response: Notifications.NotificationResponse) => {
-    const dedupKey = `${response.notification.request.identifier}::${response.actionIdentifier}`;
-    if (lastHandledRef.current === dedupKey) return;
-    lastHandledRef.current = dedupKey;
-
-    try {
-      const actionId = response.actionIdentifier;
-      const isTap = actionId === Notifications.DEFAULT_ACTION_IDENTIFIER;
-
-      if (!isTap) {
-        await handleNotificationAction(db, response);
+  const navigateForAction = useCallback((actionId: string, data?: Record<string, any>) => {
+    if (actionId === NOTIF_ACTION.PERIOD_STARTED) {
+      const expectedStart = data?.expectedStart as string | undefined;
+      if (expectedStart) {
+        router.push(`/log/${expectedStart}`);
+        return;
       }
-
-      if (isTap || actionId === NOTIF_ACTION.PERIOD_STARTED || actionId === NOTIF_ACTION.LOG_NOW) {
-        if (actionId === NOTIF_ACTION.PERIOD_STARTED) {
-          const expectedStart = response.notification.request.content.data?.expectedStart;
-          if (expectedStart) {
-            router.push(`/log/${expectedStart}`);
-            return;
-          }
-        }
-        router.push('/');
-      }
-    } catch (err) {
-      console.error('[Notification] Error in processing:', err);
     }
-  }, [db, router]);
+    // LOG_NOW, default tap, unknown → home
+    router.push('/');
+  }, [router]);
 
   useEffect(() => {
-    const sub = Notifications.addNotificationResponseReceivedListener(processNotificationResponse);
+    // ── Foreground + background: handle silently, no app launch ───────────
+    const unsubscribe = notifee.onForegroundEvent(async ({ type, detail }) => {
+      if (type === EventType.ACTION_PRESS) {
+        const actionId = detail.pressAction?.id;
+        if (!actionId) return;
 
-    Notifications.getLastNotificationResponseAsync().then((response) => {
-      if (response) {
-        processNotificationResponse(response);
-        Notifications.clearLastNotificationResponseAsync?.();
+        await handleNotifeeAction(db, actionId, detail.notification);
+
+        // Only navigate for actions that explicitly open the app
+        if (actionId === NOTIF_ACTION.LOG_NOW || actionId === NOTIF_ACTION.PERIOD_STARTED) {
+          navigateForAction(actionId, detail.notification?.data as any);
+        }
+      } else if (type === EventType.PRESS) {
+        // Bare notification body tapped → home
+        router.push('/');
       }
     });
 
-    return () => sub.remove();
-  }, [processNotificationResponse]);
+    return () => unsubscribe();
+  }, [db, navigateForAction]);
+
+  // ── Killed state: app launched by tapping an action with launchActivity ─
+  // Must run only once on mount — getInitialNotification clears after first call,
+  // subsequent calls return null, so separating from the foreground effect
+  // prevents re-firing when navigateForAction ref changes after navigation.
+  useEffect(() => {
+    notifee.getInitialNotification().then((initial) => {
+      if (!initial) return;
+      const actionId = initial.pressAction?.id;
+      if (actionId) {
+        navigateForAction(actionId, initial.notification.data as any);
+      } else {
+        // Plain tap on notification body
+        router.push('/');
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>

@@ -53,7 +53,7 @@ export function useCycle() {
         setPrediction(pred);
         // Re-schedule notifications if permission is granted
         getNotificationPermissionStatus().then((status) => {
-          if (status === 'granted') {
+          if (status.status === 'granted') {
             scheduleAllNotifications(pred, notifications).catch(console.error);
           }
         });

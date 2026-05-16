@@ -1,26 +1,21 @@
-import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
+import notifee, {
+  AndroidImportance,
+  AndroidVisibility,
+  TriggerType,
+  RepeatFrequency,
+  type TimestampTrigger,
+} from '@notifee/react-native';
 import { Colors } from '../../constants/colors';
 import type { CyclePrediction, NotificationSettings } from '../../types';
 import { parseISO, addDays } from 'date-fns';
 
-// iOS allows max 64 scheduled notifications. Budget allocation:
-// Cycle events: up to 4 (period-soon, period-late, fertile, ovulation)
-// Daily log: 1
-// Pill: up to 30 (specific dates) or 1 (daily)
-// Water: up to 10 slots
-const MAX_WATER_SLOTS = 10;
-const MAX_PILL_DATES = 30;
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+/** AsyncStorage key used to queue killed-state actions for processing on app open. */
+export const PENDING_ACTIONS_KEY = 'juno_pending_notif_actions';
 
 // ─── Action identifiers ───────────────────────────────────────────────────────
+
 export const NOTIF_ACTION = {
   PILL_TAKEN:     'pill-taken',
   PILL_SKIPPED:   'pill-skipped',
@@ -31,109 +26,86 @@ export const NOTIF_ACTION = {
   REMIND_15:      'remind-15',
 } as const;
 
-// ─── Channel / category setup ─────────────────────────────────────────────────
+export type NotifAction = typeof NOTIF_ACTION[keyof typeof NOTIF_ACTION];
+
+// ─── Pill / water action button sets (reused per notification) ────────────────
+
+const PILL_ACTIONS = [
+  { title: '✓ Taken',      pressAction: { id: NOTIF_ACTION.PILL_TAKEN } },
+  { title: '✕ Not today',  pressAction: { id: NOTIF_ACTION.PILL_SKIPPED } },
+  { title: '⏰ 15 min',    pressAction: { id: NOTIF_ACTION.REMIND_15 } },
+];
+
+const WATER_ACTIONS = [
+  { title: '💧 Done!',   pressAction: { id: NOTIF_ACTION.WATER_DONE } },
+  { title: '⏰ 15 min',  pressAction: { id: NOTIF_ACTION.REMIND_15 } },
+];
+
+const DAILY_LOG_ACTIONS = [
+  { title: '📝 Log now',  pressAction: { id: NOTIF_ACTION.LOG_NOW, launchActivity: 'default' } },
+  { title: '⏰ 15 min',   pressAction: { id: NOTIF_ACTION.REMIND_15 } },
+];
+
+const PERIOD_OVERDUE_ACTIONS = [
+  { title: '🩸 It started', pressAction: { id: NOTIF_ACTION.PERIOD_STARTED, launchActivity: 'default' } },
+  { title: '⏳ Not yet',    pressAction: { id: NOTIF_ACTION.PERIOD_NOT_YET } },
+];
+
+// ─── Channel setup ────────────────────────────────────────────────────────────
 
 export async function setupNotificationChannels(): Promise<void> {
-  // Action categories work on both iOS and Android
-  await Notifications.setNotificationCategoryAsync('pill-reminder', [
-    {
-      identifier: NOTIF_ACTION.PILL_TAKEN,
-      buttonTitle: '✓ Taken',
-      // Must open app — killed-state actions not persisted by Android without foreground launch
-      options: { opensAppToForeground: true, isAuthenticationRequired: false },
-    },
-    {
-      identifier: NOTIF_ACTION.PILL_SKIPPED,
-      buttonTitle: '✕ Not today',
-      options: { opensAppToForeground: true, isAuthenticationRequired: false },
-    },
-    {
-      identifier: NOTIF_ACTION.REMIND_15,
-      buttonTitle: '⏰ 15 min',
-      options: { opensAppToForeground: true, isAuthenticationRequired: false },
-    },
-  ]);
-
-  await Notifications.setNotificationCategoryAsync('water-reminder', [
-    {
-      identifier: NOTIF_ACTION.WATER_DONE,
-      buttonTitle: '💧 Done!',
-      options: { opensAppToForeground: true, isAuthenticationRequired: false },
-    },
-    {
-      identifier: NOTIF_ACTION.REMIND_15,
-      buttonTitle: '⏰ 15 min',
-      options: { opensAppToForeground: true, isAuthenticationRequired: false },
-    },
-  ]);
-
-  await Notifications.setNotificationCategoryAsync('daily-log', [
-    {
-      identifier: NOTIF_ACTION.LOG_NOW,
-      buttonTitle: '📝 Log now',
-      options: { opensAppToForeground: true, isAuthenticationRequired: false },
-    },
-    {
-      identifier: NOTIF_ACTION.REMIND_15,
-      buttonTitle: '⏰ 15 min',
-      options: { opensAppToForeground: true, isAuthenticationRequired: false },
-    },
-  ]);
-
-  await Notifications.setNotificationCategoryAsync('period-overdue', [
-    {
-      identifier: NOTIF_ACTION.PERIOD_STARTED,
-      buttonTitle: '🩸 It started',
-      options: { opensAppToForeground: true, isAuthenticationRequired: false },
-    },
-    {
-      identifier: NOTIF_ACTION.PERIOD_NOT_YET,
-      buttonTitle: '⏳ Not yet',
-      options: { opensAppToForeground: false, isAuthenticationRequired: false },
-    },
-  ]);
-
-  // Android channels (API 26+ requirement — silently dropped without these)
-  if (Platform.OS !== 'android') return;
-
-  await Notifications.setNotificationChannelAsync('juno-cycle', {
+  await notifee.createChannel({
+    id: 'juno-cycle',
     name: 'Cycle alerts',
     description: 'Period, ovulation and fertile window reminders',
-    importance: Notifications.AndroidImportance.HIGH,
-    vibrationPattern: [0, 250, 250, 250],
+    importance: AndroidImportance.HIGH,
+    vibration: true,
+    vibrationPattern: [300, 250, 300, 250],
+    lights: true,
     lightColor: Colors.dustyRose,
     sound: 'default',
+    visibility: AndroidVisibility.PUBLIC,
   });
 
-  await Notifications.setNotificationChannelAsync('juno-daily', {
+  await notifee.createChannel({
+    id: 'juno-daily',
     name: 'Daily reminders',
     description: 'Log nudges and pill reminders',
-    importance: Notifications.AndroidImportance.HIGH,
+    importance: AndroidImportance.HIGH,
     sound: 'default',
+    visibility: AndroidVisibility.PUBLIC,
   });
 
-  await Notifications.setNotificationChannelAsync('juno-water', {
+  await notifee.createChannel({
+    id: 'juno-water',
     name: 'Hydration reminders',
     description: 'Water intake reminders throughout the day',
-    importance: Notifications.AndroidImportance.DEFAULT,
-    sound: null,
+    importance: AndroidImportance.DEFAULT,
+    visibility: AndroidVisibility.PUBLIC,
   });
 }
 
 // ─── Permission ───────────────────────────────────────────────────────────────
 
 export async function requestNotificationPermission(): Promise<boolean> {
-  const { status } = await Notifications.requestPermissionsAsync();
-  return status === 'granted';
+  const settings = await notifee.requestPermission();
+  return settings.authorizationStatus >= 1; // AUTHORIZED or PROVISIONAL
 }
 
-export async function getNotificationPermissionStatus() {
-  const { status, canAskAgain } = await Notifications.getPermissionsAsync();
-  return { status, canAskAgain };
+export async function getNotificationPermissionStatus(): Promise<{
+  status: 'granted' | 'denied' | 'undetermined';
+  canAskAgain: boolean;
+}> {
+  const settings = await notifee.getNotificationSettings();
+  const auth = settings.authorizationStatus;
+  // Notifee: NOT_DETERMINED = -1, DENIED = 0, AUTHORIZED = 1, PROVISIONAL = 2
+  const status = auth >= 1 ? 'granted' : auth === -1 ? 'undetermined' : 'denied';
+  return { status, canAskAgain: auth === -1 };
 }
 
 export async function cancelAllNotifications(): Promise<void> {
-  await Notifications.cancelAllScheduledNotificationsAsync();
+  await notifee.cancelAllNotifications();
+  await notifee.cancelTriggerNotifications();
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -148,64 +120,85 @@ function parseTime(timeStr: string | undefined): [number, number] {
   ];
 }
 
-/** One-time notification at a specific date. Silently skips past dates. */
-async function scheduleNotification(
+/** Next occurrence of HH:MM (today if still in future, otherwise tomorrow). */
+function nextDailyOccurrence(hour: number, minute: number): Date {
+  const now = new Date();
+  const candidate = new Date();
+  candidate.setHours(hour, minute, 0, 0);
+  if (candidate <= now) {
+    candidate.setDate(candidate.getDate() + 1);
+  }
+  return candidate;
+}
+
+/** One-time notification at specific date. Skips past dates silently. */
+async function scheduleOnce(
   id: string,
   title: string,
   body: string,
   date: Date,
-  categoryIdentifier?: string,
-  data?: Record<string, unknown>,
-  channelId = 'juno-cycle'
+  channelId: string,
+  actions?: { title: string; pressAction: { id: string; launchActivity?: string } }[],
+  data?: Record<string, string>
 ): Promise<void> {
-  if (date <= new Date()) return; // Never schedule in the past
+  if (date <= new Date()) return;
 
-  await Notifications.cancelScheduledNotificationAsync(id).catch(() => {});
-  await Notifications.scheduleNotificationAsync({
-    identifier: id,
-    content: {
+  await notifee.cancelTriggerNotification(id).catch(() => {});
+
+  const trigger: TimestampTrigger = {
+    type: TriggerType.TIMESTAMP,
+    timestamp: date.getTime(),
+  };
+
+  await notifee.createTriggerNotification(
+    {
+      id,
       title,
       body,
-      sound: 'default',
-      ...(categoryIdentifier && { categoryIdentifier }),
+      android: {
+        channelId,
+
+        ...(actions && { actions }),
+      },
       ...(data && { data }),
-      ...(Platform.OS === 'android' && { channelId }),
     },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DATE,
-      date,
-    },
-  });
+    trigger
+  );
 }
 
-/** Recurring daily notification at a fixed hour:minute. */
-async function scheduleDailyNotification(
+/** Daily repeating notification at HH:MM. */
+async function scheduleDaily(
   id: string,
   title: string,
   body: string,
   hour: number,
   minute: number,
-  categoryIdentifier?: string,
-  data?: Record<string, unknown>,
-  channelId = 'juno-daily'
+  channelId: string,
+  actions?: { title: string; pressAction: { id: string; launchActivity?: string } }[],
+  data?: Record<string, string>
 ): Promise<void> {
-  await Notifications.cancelScheduledNotificationAsync(id).catch(() => {});
-  await Notifications.scheduleNotificationAsync({
-    identifier: id,
-    content: {
+  await notifee.cancelTriggerNotification(id).catch(() => {});
+
+  const trigger: TimestampTrigger = {
+    type: TriggerType.TIMESTAMP,
+    timestamp: nextDailyOccurrence(hour, minute).getTime(),
+    repeatFrequency: RepeatFrequency.DAILY,
+  };
+
+  await notifee.createTriggerNotification(
+    {
+      id,
       title,
       body,
-      sound: 'default',
-      ...(categoryIdentifier && { categoryIdentifier }),
+      android: {
+        channelId,
+
+        ...(actions && { actions }),
+      },
       ...(data && { data }),
-      ...(Platform.OS === 'android' && { channelId }),
     },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour,
-      minute,
-    },
-  });
+    trigger
+  );
 }
 
 // ─── Main scheduler ───────────────────────────────────────────────────────────
@@ -214,212 +207,157 @@ export async function scheduleAllNotifications(
   prediction: CyclePrediction | null,
   settings: NotificationSettings
 ): Promise<void> {
-  const { status } = await Notifications.getPermissionsAsync();
-  if (status !== 'granted') return;
+  const permSettings = await notifee.getNotificationSettings();
+  if (permSettings.authorizationStatus < 1) return;
 
-  // Categories must exist before scheduling (idempotent call)
   await setupNotificationChannels();
-
-  // Full cancel → clean reschedule (prevents stale notifications)
   await cancelAllNotifications();
 
-  // ── Cycle-based (require a valid prediction) ──────────────────────────────
+  // ── Cycle-based ───────────────────────────────────────────────────────────
 
   if (prediction) {
-    // Period starting soon
     if (settings.periodSoonEnabled) {
-      const triggerDate = addDays(parseISO(prediction.nextPeriodStart), -settings.periodSoonDays);
-      triggerDate.setHours(9, 0, 0, 0);
-      await scheduleNotification(
+      const d = addDays(parseISO(prediction.nextPeriodStart), -settings.periodSoonDays);
+      d.setHours(9, 0, 0, 0);
+      await scheduleOnce(
         'period-soon',
         '🌸 Period starting soon',
         `Your period is expected in ${settings.periodSoonDays} day${settings.periodSoonDays > 1 ? 's' : ''}. Stock up on supplies and be kind to yourself.`,
-        triggerDate
+        d, 'juno-cycle'
       );
     }
 
-    // Period late check-in (3 days overdue)
     if (settings.periodLateEnabled) {
       await scheduleLatePeriodCheck(prediction.nextPeriodStart);
     }
 
-    // Fertile window (day before it starts)
     if (settings.fertileWindowEnabled) {
-      const fertileStart = addDays(parseISO(prediction.fertileWindowStart), -1);
-      fertileStart.setHours(9, 0, 0, 0);
-      await scheduleNotification(
+      const d = addDays(parseISO(prediction.fertileWindowStart), -1);
+      d.setHours(9, 0, 0, 0);
+      await scheduleOnce(
         'fertile-window',
         '💚 Fertile window starts tomorrow',
         'Your fertile window begins tomorrow. Track your discharge and temperature for the most accurate picture.',
-        fertileStart
+        d, 'juno-cycle'
       );
     }
 
-    // Ovulation day
     if (settings.ovulationEnabled) {
-      const ovDate = parseISO(prediction.ovulationDay);
-      ovDate.setHours(8, 0, 0, 0);
-      await scheduleNotification(
+      const d = parseISO(prediction.ovulationDay);
+      d.setHours(8, 0, 0, 0);
+      await scheduleOnce(
         'ovulation-day',
         '✨ Ovulation day',
         'Today is your estimated ovulation day — your peak fertility window. Log your BBT and cervical mucus for better predictions.',
-        ovDate
+        d, 'juno-cycle'
       );
     }
   }
 
   // ── Daily recurring ───────────────────────────────────────────────────────
 
-  // Daily log nudge (with quick-log actions)
   if (settings.dailyLogEnabled) {
     const [h, m] = parseTime(settings.dailyLogTime);
-    await scheduleDailyNotification(
+    await scheduleDaily(
       'daily-log',
       '📝 Daily check-in',
       'How are you feeling today? A quick log helps Juno make better predictions.',
-      h,
-      m,
-      'daily-log',
-      undefined,
-      'juno-daily'
+      h, m, 'juno-daily', DAILY_LOG_ACTIONS
     );
   }
 
-  // Pill reminder (with taken/skipped/snooze actions)
   if (settings.pillReminderEnabled) {
     const [h, m] = parseTime(settings.pillReminderTime);
 
-    if (settings.pillReminderDates && settings.pillReminderDates.length > 0) {
-      // Specific scheduled dates — cap to stay within iOS 64-notification limit
-      const dates = settings.pillReminderDates.slice(0, MAX_PILL_DATES);
-      for (const dateStr of dates) {
-        const date = parseISO(dateStr);
-        date.setHours(h, m, 0, 0);
-        await scheduleNotification(
+    if (settings.pillReminderDates?.length) {
+      for (const dateStr of settings.pillReminderDates.slice(0, 30)) {
+        const d = parseISO(dateStr);
+        d.setHours(h, m, 0, 0);
+        await scheduleOnce(
           `pill-${dateStr}`,
           '💊 Pill reminder',
           "Time to take your scheduled pill. Stay on track — consistency matters.",
-          date,
-          'pill-reminder',
-          undefined,
-          'juno-daily'
+          d, 'juno-daily', PILL_ACTIONS
         );
       }
     } else {
-      // Daily recurring
-      await scheduleDailyNotification(
+      await scheduleDaily(
         'pill-reminder',
         '💊 Pill reminder',
-        "Time to take your pill. Tap 'Taken' to log it without opening the app.",
-        h,
-        m,
-        'pill-reminder',
-        undefined,
-        'juno-daily'
+        "Time to take your pill. Tap 'Taken' to log it — no need to open the app.",
+        h, m, 'juno-daily', PILL_ACTIONS
       );
     }
   }
 
-  // Water reminders (cap slots to prevent hitting OS limit)
   if (settings.waterReminderEnabled && settings.waterReminderTimes?.length) {
-    const slots = settings.waterReminderTimes.slice(0, MAX_WATER_SLOTS);
+    const slots = settings.waterReminderTimes.slice(0, 10);
 
-    // Cancel any slots beyond the current count (user may have removed some)
-    for (let i = slots.length; i < MAX_WATER_SLOTS; i++) {
-      await Notifications.cancelScheduledNotificationAsync(`water-${i}`).catch(() => {});
+    // Cancel removed slots
+    for (let i = slots.length; i < 10; i++) {
+      await notifee.cancelTriggerNotification(`water-${i}`).catch(() => {});
     }
 
     for (let i = 0; i < slots.length; i++) {
       const [h, m] = parseTime(slots[i]);
-      await scheduleDailyNotification(
+      await scheduleDaily(
         `water-${i}`,
         '💧 Stay hydrated',
         "Time for a glass of water! Tap 'Done' to log it.",
-        h,
-        m,
-        'water-reminder',
-        undefined,
-        'juno-water'
+        h, m, 'juno-water', WATER_ACTIONS
       );
     }
   }
 }
 
-// ─── Late period check-in (also called from useCycle on logPeriodStart) ───────
+// ─── Late period check-in ─────────────────────────────────────────────────────
 
 export async function scheduleLatePeriodCheck(expectedStart: string): Promise<void> {
-  const triggerDate = addDays(parseISO(expectedStart), 3);
-  triggerDate.setHours(9, 0, 0, 0);
-  await scheduleNotification(
+  const d = addDays(parseISO(expectedStart), 3);
+  d.setHours(9, 0, 0, 0);
+  await scheduleOnce(
     'period-late',
     '🗓 Period check-in',
     'Your period was expected a few days ago. It can be normal — tap to log if it has started, or dismiss if you are still waiting.',
-    triggerDate,
-    'period-overdue',
+    d, 'juno-cycle', PERIOD_OVERDUE_ACTIONS,
     { expectedStart }
   );
 }
 
-// ─── Dev / test helpers ───────────────────────────────────────────────────────
+// ─── Dev helpers ──────────────────────────────────────────────────────────────
 
 export async function triggerTestNotification(
   type: 'period-soon' | 'period-late' | 'fertile' | 'ovulation' | 'daily-log' | 'pill' | 'water'
 ): Promise<void> {
-  const trigger = {
-    type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-    seconds: 3,
-    repeats: false,
-  } as const;
+  await setupNotificationChannels();
 
-  const TESTS: Record<typeof type, Notifications.NotificationContentInput> = {
-    'period-soon': {
-      title: '🌸 Period starting soon',
-      body: 'Your period is expected in 2 days. Stock up on supplies and be kind to yourself.',
-      sound: 'default',
-    },
-    'period-late': {
-      title: '🗓 Period check-in',
-      body: 'Your period was expected a few days ago. Tap to log if it has started.',
-      sound: 'default',
-      categoryIdentifier: 'period-overdue',
-      data: { expectedStart: new Date().toISOString() },
-    },
-    'fertile': {
-      title: '💚 Fertile window starts tomorrow',
-      body: 'Your fertile window begins tomorrow. Track your discharge and temperature.',
-      sound: 'default',
-    },
-    'ovulation': {
-      title: '✨ Ovulation day',
-      body: 'Today is your estimated ovulation day — your peak fertility window.',
-      sound: 'default',
-    },
-    'daily-log': {
-      title: '📝 Daily check-in',
-      body: 'How are you feeling today? A quick log helps Juno make better predictions.',
-      sound: 'default',
-      categoryIdentifier: 'daily-log',
-    },
-    'pill': {
-      title: '💊 Pill reminder',
-      body: "Time to take your pill. Tap 'Taken' to log it without opening the app.",
-      sound: 'default',
-      categoryIdentifier: 'pill-reminder',
-    },
-    'water': {
-      title: '💧 Stay hydrated',
-      body: "Time for a glass of water! Tap 'Done' to log it.",
-      sound: 'default',
-      categoryIdentifier: 'water-reminder',
-    },
+  const configs: Record<typeof type, { title: string; body: string; channelId: string; actions?: any[] }> = {
+    'period-soon': { title: '🌸 Period starting soon', body: 'Your period is expected in 2 days. Stock up on supplies and be kind to yourself.', channelId: 'juno-cycle' },
+    'period-late': { title: '🗓 Period check-in', body: 'Your period was expected a few days ago. Tap to log if it has started.', channelId: 'juno-cycle', actions: PERIOD_OVERDUE_ACTIONS as any },
+    'fertile':     { title: '💚 Fertile window starts tomorrow', body: 'Your fertile window begins tomorrow. Track your discharge and temperature.', channelId: 'juno-cycle' },
+    'ovulation':   { title: '✨ Ovulation day', body: 'Today is your estimated ovulation day — your peak fertility window.', channelId: 'juno-cycle' },
+    'daily-log':   { title: '📝 Daily check-in', body: 'How are you feeling today? A quick log helps Juno make better predictions.', channelId: 'juno-daily', actions: DAILY_LOG_ACTIONS as any },
+    'pill':        { title: '💊 Pill reminder', body: "Time to take your pill. Tap 'Taken' to log it.", channelId: 'juno-daily', actions: PILL_ACTIONS },
+    'water':       { title: '💧 Stay hydrated', body: "Time for a glass of water! Tap 'Done' to log it.", channelId: 'juno-water', actions: WATER_ACTIONS },
   };
 
-  await Notifications.scheduleNotificationAsync({
-    content: TESTS[type],
-    trigger,
-  });
+  const cfg = configs[type];
+  const in3s = new Date(Date.now() + 3000);
+
+  await notifee.createTriggerNotification(
+    {
+      title: cfg.title,
+      body: cfg.body,
+      android: {
+        channelId: cfg.channelId,
+
+        ...(cfg.actions && { actions: cfg.actions }),
+      },
+    },
+    { type: TriggerType.TIMESTAMP, timestamp: in3s.getTime() }
+  );
 }
 
 export async function getScheduledNotifications() {
-  return Notifications.getAllScheduledNotificationsAsync();
+  return notifee.getTriggerNotifications();
 }

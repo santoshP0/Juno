@@ -10,7 +10,7 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { useCycleStore } from '../../stores/cycleStore';
 import { getUser } from '../../lib/db/queries';
 import { scheduleAllNotifications } from '../../lib/notifications';
-import { Colors } from '../../constants/colors';
+import { processPendingNotifActions } from '../../lib/notifications/handler';
 
 function TabBarIcon({
   Icon,
@@ -53,6 +53,8 @@ export default function TabsLayout() {
       const user = await getUser(db);
       if (user) setProfile(user);
       await reload();
+      // Drain any notification actions captured while app was killed
+      await processPendingNotifActions(db);
       // Reschedule on every launch so predictions stay current
       const prediction = useCycleStore.getState().prediction;
       if (prediction) {

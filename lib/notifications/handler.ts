@@ -1,13 +1,24 @@
-import * as Notifications from 'expo-notifications';
+import notifee, { TriggerType, type AndroidAction, type Notification as NotifeeNotification } from '@notifee/react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SQLiteDatabase } from 'expo-sqlite';
 import { getLogByDate, upsertLog } from '../db/queries';
 import { todayStr } from '../utils/date';
-import { NOTIF_ACTION } from './index';
-import { addMinutes, addDays } from 'date-fns';
+import { NOTIF_ACTION, PENDING_ACTIONS_KEY } from './index';
 import { useCycleStore } from '../../stores/cycleStore';
 import type { DailyLog } from '../../types';
 
-/** Merge notification-captured data into today's log, preserving all existing fields. */
+// ─── Pending action type (written by background handler in index.js) ──────────
+
+export interface PendingNotifAction {
+  actionId: string;
+  notificationId?: string;
+  channelId?: string;
+  data?: Record<string, string>;
+  timestamp: number;
+}
+
+// ─── Merge helper — preserves all existing log fields, applies patch ──────────
+
 function mergeLog(
   existing: DailyLog | null,
   patch: Partial<Omit<DailyLog, 'id' | 'date' | 'createdAt' | 'updatedAt'>>
@@ -32,105 +43,116 @@ function mergeLog(
   };
 }
 
-export async function handleNotificationAction(
+// ─── Write log to DB + sync Zustand store ─────────────────────────────────────
+
+async function writeLog(
   db: SQLiteDatabase,
-  response: Notifications.NotificationResponse
+  patch: Partial<Omit<DailyLog, 'id' | 'date' | 'createdAt' | 'updatedAt'>>
 ): Promise<void> {
-  const actionId = response.actionIdentifier;
-  const content = response.notification.request.content;
-  const categoryId = (content as any).categoryIdentifier as string | undefined;
+  const existing = await getLogByDate(db, todayStr());
+  const logData = mergeLog(existing, patch);
+  await upsertLog(db, logData);
+  const saved = await getLogByDate(db, todayStr());
+  if (saved) useCycleStore.getState().upsertLog(saved);
+}
 
-  // Default tap is handled by the caller (_layout.tsx) via navigation
-  if (actionId === Notifications.DEFAULT_ACTION_IDENTIFIER) return;
+// ─── Foreground / background action handler (app is running) ──────────────────
 
-  // Dismiss the notification from the system tray
-  await Notifications.dismissNotificationAsync(
-    response.notification.request.identifier
-  ).catch(() => {});
+export async function handleNotifeeAction(
+  db: SQLiteDatabase,
+  actionId: string,
+  notification: NotifeeNotification | undefined
+): Promise<void> {
+  // Dismiss source notification
+  if (notification?.id) {
+    await notifee.cancelNotification(notification.id).catch(() => {});
+  }
 
   try {
     switch (actionId) {
-      // ── Pill ─────────────────────────────────────────────────────────────
       case NOTIF_ACTION.PILL_TAKEN:
-      case NOTIF_ACTION.PILL_SKIPPED: {
-        const existing = await getLogByDate(db, todayStr());
-        const logData = mergeLog(existing, {
-          pillTaken: actionId === NOTIF_ACTION.PILL_TAKEN,
-        });
-        await upsertLog(db, logData);
-
-        const saved = await getLogByDate(db, todayStr());
-        if (saved) useCycleStore.getState().upsertLog(saved);
+        await writeLog(db, { pillTaken: true });
         break;
-      }
 
-      // ── Water ─────────────────────────────────────────────────────────────
+      case NOTIF_ACTION.PILL_SKIPPED:
+        await writeLog(db, { pillTaken: false });
+        break;
+
       case NOTIF_ACTION.WATER_DONE: {
         const existing = await getLogByDate(db, todayStr());
-        const logData = mergeLog(existing, {
-          waterIntake: (existing?.waterIntake ?? 0) + 1,
-        });
-        await upsertLog(db, logData);
-
-        const saved = await getLogByDate(db, todayStr());
-        if (saved) useCycleStore.getState().upsertLog(saved);
+        await writeLog(db, { waterIntake: (existing?.waterIntake ?? 0) + 1 });
         break;
       }
 
-      // ── Snooze 15 min ─────────────────────────────────────────────────────
       case NOTIF_ACTION.REMIND_15: {
-        const triggerDate = addMinutes(new Date(), 15);
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: content.title ?? 'Reminder',
-            body: content.body ?? '',
-            sound: 'default',
-            ...(categoryId && { categoryIdentifier: categoryId }),
-            ...(content.data && { data: content.data }),
+        const in15 = new Date(Date.now() + 15 * 60 * 1000);
+        const actions = notification?.android?.actions as AndroidAction[] | undefined;
+        await notifee.createTriggerNotification(
+          {
+            title: notification?.title ?? 'Reminder',
+            body: notification?.body ?? '',
+            android: {
+              channelId: notification?.android?.channelId ?? 'juno-daily',
+      
+              ...(actions && { actions }),
+            },
+            data: notification?.data,
           },
-          trigger: {
-            type: Notifications.SchedulableTriggerInputTypes.DATE,
-            date: triggerDate,
-          },
-        });
+          { type: TriggerType.TIMESTAMP, timestamp: in15.getTime() }
+        );
         break;
       }
 
-      // ── Period not yet — reschedule check-in for tomorrow ─────────────────
       case NOTIF_ACTION.PERIOD_NOT_YET: {
-        const triggerDate = addDays(new Date(), 1);
-        triggerDate.setHours(9, 0, 0, 0);
-        await Notifications.scheduleNotificationAsync({
-          identifier: 'period-late',
-          content: {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(9, 0, 0, 0);
+        const actions = notification?.android?.actions as AndroidAction[] | undefined;
+        await notifee.createTriggerNotification(
+          {
+            id: 'period-late',
             title: '🗓 Period check-in',
             body: "Still no period? That's often normal — tap to log once it starts, or dismiss to keep waiting.",
-            sound: 'default',
-            categoryIdentifier: 'period-overdue',
-            ...(content.data && { data: content.data }),
+            android: {
+              channelId: 'juno-cycle',
+      
+              ...(actions && { actions }),
+            },
+            data: notification?.data,
           },
-          trigger: {
-            type: Notifications.SchedulableTriggerInputTypes.DATE,
-            date: triggerDate,
-          },
-        });
+          { type: TriggerType.TIMESTAMP, timestamp: tomorrow.getTime() }
+        );
         break;
       }
 
-      // ── LOG_NOW: navigation handled in _layout.tsx ─────────────────────────
+      // LOG_NOW and PERIOD_STARTED: navigation only, handled in _layout.tsx
       case NOTIF_ACTION.LOG_NOW:
-        // No data action needed — _layout.tsx routes to home where user can log
-        break;
-
-      // ── PERIOD_STARTED: navigation handled in _layout.tsx ─────────────────
       case NOTIF_ACTION.PERIOD_STARTED:
-        // No data action needed — _layout.tsx routes to log/[date]
         break;
 
       default:
         break;
     }
   } catch (error) {
-    console.error('[NotificationHandler] Failed to handle action:', actionId, error);
+    console.error('[NotifHandler] Failed to handle action:', actionId, error);
+  }
+}
+
+// ─── Drain killed-state queue (AsyncStorage → SQLite) ────────────────────────
+
+export async function processPendingNotifActions(db: SQLiteDatabase): Promise<void> {
+  try {
+    const raw = await AsyncStorage.getItem(PENDING_ACTIONS_KEY);
+    if (!raw) return;
+
+    // Clear immediately before processing — prevents double-processing if app crashes mid-way
+    await AsyncStorage.removeItem(PENDING_ACTIONS_KEY);
+
+    const queue: PendingNotifAction[] = JSON.parse(raw);
+    for (const action of queue) {
+      await handleNotifeeAction(db, action.actionId, undefined);
+    }
+  } catch (err) {
+    console.error('[NotifHandler] Failed to process pending actions:', err);
   }
 }
