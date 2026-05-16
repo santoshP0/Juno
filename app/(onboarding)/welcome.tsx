@@ -42,6 +42,12 @@ const SLIDES = [
     subtitle: 'Predictions, insights, and personalized content based on your unique cycle.',
     bg: Colors.goldLight,
   },
+  {
+    emoji: '💌',
+    title: 'Built for you',
+    subtitle: "Juno is built by one person who genuinely cares. Have feedback or a feature idea? Reach out anytime from Settings — every message is read.",
+    bg: Colors.dustyRoseLight,
+  },
 ];
 
 export default function WelcomeScreen() {

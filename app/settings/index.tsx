@@ -1,8 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { View, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, ScrollView, StyleSheet, TouchableOpacity, Alert, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, MessageCircle, Lightbulb } from 'lucide-react-native';
+
+const FEEDBACK_EMAIL = 'santosh929027@gmail.com';
 import { useSQLiteContext } from 'expo-sqlite';
 
 import { Typography } from '../../components/ui/Typography';
@@ -224,6 +226,39 @@ export default function SettingsScreen() {
           />
         </Card>
 
+        {/* Feedback & support */}
+        <Card padding={16}>
+          <Typography variant="label" color={colors.textSecondary} style={{ marginBottom: 12 }}>
+            Feedback & support
+          </Typography>
+
+          <TouchableOpacity
+            onPress={() => Linking.openURL(`mailto:${FEEDBACK_EMAIL}?subject=Juno%20Feedback`)}
+            style={s.feedbackRow}
+          >
+            <MessageCircle size={18} color={colors.accent} />
+            <View style={{ flex: 1 }}>
+              <Typography variant="body2">Send feedback</Typography>
+              <Typography variant="caption" color={colors.textTertiary}>Tell me what's working or not</Typography>
+            </View>
+            <ChevronRight size={16} color={colors.textTertiary} />
+          </TouchableOpacity>
+
+          <View style={[s.feedbackDivider, { backgroundColor: colors.border }]} />
+
+          <TouchableOpacity
+            onPress={() => Linking.openURL(`mailto:${FEEDBACK_EMAIL}?subject=Feature%20Request%3A%20`)}
+            style={s.feedbackRow}
+          >
+            <Lightbulb size={18} color={Colors.gold} />
+            <View style={{ flex: 1 }}>
+              <Typography variant="body2">Request a feature</Typography>
+              <Typography variant="caption" color={colors.textTertiary}>What would make Juno better for you?</Typography>
+            </View>
+            <ChevronRight size={16} color={colors.textTertiary} />
+          </TouchableOpacity>
+        </Card>
+
         <Button label="Save changes" onPress={handleSave} loading={saving} fullWidth size="lg" />
 
         {/* Danger zone */}
@@ -290,4 +325,11 @@ const s = StyleSheet.create({
     gap: 12,
   },
   radio: { width: 18, height: 18, borderRadius: 9, borderWidth: 2 },
+  feedbackRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+  },
+  feedbackDivider: { height: 1, marginVertical: 4 },
 });
