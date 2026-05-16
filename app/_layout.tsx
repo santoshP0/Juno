@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet, AppState, AppStateStatus } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { SQLiteProvider } from 'expo-sqlite';
+import { SQLiteProvider, useSQLiteContext } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
@@ -11,7 +11,8 @@ import '../global.css';
 
 import { initializeDatabase } from '../lib/db/schema';
 import { runMigrations } from '../lib/db/migrations';
-import { setupNotificationChannels } from '../lib/notifications';
+import { setupNotificationChannels, NOTIF_ACTION } from '../lib/notifications';
+import { handleNotificationAction } from '../lib/notifications/handler';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useTheme, useColors } from '../hooks/useTheme';
 import { onAppBackground, checkShouldLock } from '../hooks/useAppLock';
@@ -44,13 +45,30 @@ function AppGuard({ children }: { children: React.ReactNode }) {
     return () => sub.remove();
   }, [pinEnabled, autoLockMinutes]);
 
-  // Notification tap → home tab
+  // Notification tap/action → handle logic & navigate
+  const db = useSQLiteContext();
   useEffect(() => {
-    const sub = Notifications.addNotificationResponseReceivedListener(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener(async (response) => {
+      const actionId = response.actionIdentifier;
+      
+      // 1. Handle background data logic (logging pill, water, etc.)
+      if (actionId !== Notifications.DEFAULT_ACTION_IDENTIFIER) {
+        await handleNotificationAction(db, response);
+      }
+
+      // 2. Handle navigation
+      if (actionId === NOTIF_ACTION.PERIOD_STARTED) {
+        const expectedStart = response.notification.request.content.data?.expectedStart;
+        if (expectedStart) {
+          router.push(`/log/${expectedStart}`);
+          return;
+        }
+      }
+
       router.push('/(tabs)/');
     });
     return () => sub.remove();
-  }, []);
+  }, [db]);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>

@@ -28,6 +28,7 @@ import { Spacing, Shadow, Radius } from '../../constants/theme';
 import { useWidgetSync } from '../../hooks/useWidgetSync';
 import { DAILY_INSIGHTS_BY_PHASE } from '../../constants/content';
 import { formatDate, todayStr } from '../../lib/utils/date';
+import { format, subDays } from 'date-fns';
 import { insertCycle } from '../../lib/db/queries';
 import { useCycleStore } from '../../stores/cycleStore';
 import type { CyclePhase } from '../../types';
@@ -278,11 +279,46 @@ export default function HomeScreen() {
                 value={
                   prediction.daysUntilNextPeriod > 0
                     ? `${prediction.daysUntilNextPeriod}d`
-                    : 'Today'
+                    : prediction.daysUntilNextPeriod === 0
+                    ? 'Today'
+                    : 'Overdue'
                 }
-                color={Colors.gold}
+                color={prediction.daysUntilNextPeriod < 0 ? Colors.error : Colors.gold}
               />
             </Animated.View>
+
+            {/* ── Overdue period banner ───────────────────── */}
+            {prediction.daysUntilNextPeriod < -1 && (
+              <Animated.View entering={FadeInDown.delay(240).duration(500)}>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    // Log period as of the expected start date (not today)
+                    const expectedStart = format(
+                      subDays(new Date(), Math.abs(prediction.daysUntilNextPeriod)),
+                      'yyyy-MM-dd'
+                    );
+                    router.push(`/log/${expectedStart}`);
+                  }}
+                  style={[styles.overdueBanner, { backgroundColor: Colors.error + '12', borderColor: Colors.error + '35' }]}
+                >
+                  <Typography style={{ fontSize: 22 }}>🩸</Typography>
+                  <View style={{ flex: 1 }}>
+                    <Typography variant="label" color={Colors.error} style={{ fontWeight: '700' }}>
+                      Period {Math.abs(prediction.daysUntilNextPeriod)} days late
+                    </Typography>
+                    <Typography variant="caption" color={colors.textSecondary} style={{ marginTop: 2 }}>
+                      Did it arrive? Tap to log — this is completely normal.
+                    </Typography>
+                  </View>
+                  <View style={[styles.overdueLogBtn, { backgroundColor: Colors.error + '20', borderColor: Colors.error + '40' }]}>
+                    <Typography variant="caption" color={Colors.error} style={{ fontWeight: '700' }}>
+                      Log
+                    </Typography>
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
+            )}
 
             {/* ── Phase card ──────────────────────────────── */}
             <Animated.View entering={FadeInDown.delay(250).duration(500)}>
@@ -487,6 +523,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     ...Shadow.sm,
+  },
+  overdueBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+  },
+  overdueLogBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+    borderWidth: 1,
   },
   chanceCard: {
     borderRadius: Radius.xl,

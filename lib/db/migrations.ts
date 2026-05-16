@@ -7,14 +7,12 @@ type Migration = {
 };
 
 const migrations: Migration[] = [
-  // Version 1 — baseline schema (handled by initializeDatabase)
-  // Add future migrations here:
-  // {
-  //   version: 2,
-  //   up: async (db) => {
-  //     await db.execAsync(`ALTER TABLE users ADD COLUMN ...`);
-  //   },
-  // },
+  {
+    version: 2,
+    up: async (db) => {
+      await db.execAsync(`ALTER TABLE daily_logs ADD COLUMN pill_taken INTEGER DEFAULT 0;`);
+    },
+  },
 ];
 
 export async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {

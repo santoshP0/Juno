@@ -283,6 +283,31 @@ function WaterCounter({ value, onChange }: { value: number; onChange: (v: number
   );
 }
 
+// ─── Pill selector ────────────────────────────────────────────────────────────
+
+function PillSelector({ value, onChange }: { value: boolean | null; onChange: (v: boolean | null) => void }) {
+  const colors = useColors();
+  return (
+    <View style={s.pillRow}>
+      <Typography variant="body2" style={{ flex: 1 }}>Pill taken</Typography>
+      <View style={s.pillButtons}>
+        <TouchableOpacity
+          onPress={() => onChange(true)}
+          style={[s.pillBtn, { borderColor: value === true ? Colors.success : colors.border, backgroundColor: value === true ? Colors.success + '15' : 'transparent' }]}
+        >
+          <Typography variant="caption" color={value === true ? Colors.success : colors.textTertiary} style={{ fontWeight: value === true ? '700' : '400' }}>Yes</Typography>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => onChange(false)}
+          style={[s.pillBtn, { borderColor: value === false ? Colors.error : colors.border, backgroundColor: value === false ? Colors.error + '15' : 'transparent' }]}
+        >
+          <Typography variant="caption" color={value === false ? Colors.error : colors.textTertiary} style={{ fontWeight: value === false ? '700' : '400' }}>No</Typography>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
 export default function LogScreen() {
@@ -306,6 +331,7 @@ export default function LogScreen() {
   const [bbt, setBbt] = useState<number | null>(existing?.bbt ?? null);
   const [weight, setWeight] = useState<number | null>(existing?.weight ?? null);
   const [waterIntake, setWaterIntake] = useState<number>(existing?.waterIntake ?? 0);
+  const [pillTaken, setPillTaken] = useState<boolean | null>(existing?.pillTaken ?? null);
   const [notes, setNotes] = useState<string>(existing?.notes ?? '');
   const [saving, setSaving] = useState(false);
 
@@ -347,13 +373,14 @@ export default function LogScreen() {
         bbt,
         weight,
         waterIntake,
+        pillTaken,
         notes: notes.trim() || null,
       });
       router.back();
     } finally {
       setSaving(false);
     }
-  }, [date, flow, symptoms, moods, energyLevel, sleepHours, sleepQuality, sex, discharge, bbt, weight, waterIntake, notes, saveLog, router]);
+  }, [date, flow, symptoms, moods, energyLevel, sleepHours, sleepQuality, sex, discharge, bbt, weight, waterIntake, pillTaken, notes, saveLog, router]);
 
   const handleDelete = useCallback(() => {
     Alert.alert(
@@ -509,6 +536,8 @@ export default function LogScreen() {
             />
             <View style={s.divider} />
             <WaterCounter value={waterIntake} onChange={setWaterIntake} />
+            <View style={s.divider} />
+            <PillSelector value={pillTaken} onChange={setPillTaken} />
           </Card>
 
           {/* Notes */}
@@ -601,6 +630,16 @@ const s = StyleSheet.create({
   starRow: { flexDirection: 'row' },
   waterRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
   waterBtn: { padding: 8 },
+  pillRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
+  pillButtons: { flexDirection: 'row', gap: 8 },
+  pillBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    minWidth: 60,
+    alignItems: 'center',
+  },
   divider: { height: 1, backgroundColor: Colors.dividerLight, marginVertical: 8 },
   notesInput: {
     borderWidth: 1.5,

@@ -6,7 +6,10 @@ import { Home, Calendar, BarChart2, BookOpen, User } from 'lucide-react-native';
 import { useColors } from '../../hooks/useTheme';
 import { useCycle } from '../../hooks/useCycle';
 import { useUserStore } from '../../stores/userStore';
+import { useSettingsStore } from '../../stores/settingsStore';
+import { useCycleStore } from '../../stores/cycleStore';
 import { getUser } from '../../lib/db/queries';
+import { scheduleAllNotifications } from '../../lib/notifications';
 import { Colors } from '../../constants/colors';
 
 function TabBarIcon({
@@ -43,12 +46,18 @@ export default function TabsLayout() {
   const db = useSQLiteContext();
   const { reload } = useCycle();
   const { setProfile } = useUserStore();
+  const notifications = useSettingsStore((s) => s.notifications);
 
   useEffect(() => {
     const init = async () => {
       const user = await getUser(db);
       if (user) setProfile(user);
       await reload();
+      // Reschedule on every launch so predictions stay current
+      const prediction = useCycleStore.getState().prediction;
+      if (prediction) {
+        scheduleAllNotifications(prediction, notifications).catch(() => {});
+      }
     };
     init();
   }, []);

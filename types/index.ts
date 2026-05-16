@@ -111,6 +111,7 @@ export interface DailyLog {
   bbt: number | null;
   weight: number | null;
   waterIntake: number | null;
+  pillTaken: boolean | null;
   notes: string | null;
   createdAt: string;
   updatedAt: string;

@@ -16,7 +16,63 @@ Notifications.setNotificationHandler({
 // Required on Android 8+ (API 26+). Without a channel, notifications are
 // silently dropped — the OS never shows them.
 
+// ─── Notification action identifiers (shared with _layout handler) ───────────
+export const NOTIF_ACTION = {
+  PILL_TAKEN:     'pill-taken',
+  PILL_SKIPPED:   'pill-skipped',
+  WATER_DONE:     'water-done',
+  PERIOD_NOT_YET: 'period-not-yet',
+  PERIOD_STARTED: 'period-started',
+  REMIND_15:      'remind-15',
+} as const;
+
 export async function setupNotificationChannels(): Promise<void> {
+  // ── Action categories (iOS + Android) ──────────────────────────────────────
+  await Notifications.setNotificationCategoryAsync('pill-reminder', [
+    {
+      identifier: NOTIF_ACTION.PILL_TAKEN,
+      buttonTitle: '✓ Taken',
+      options: { opensApp: false },
+    },
+    {
+      identifier: NOTIF_ACTION.PILL_SKIPPED,
+      buttonTitle: '✕ Not today',
+      options: { opensApp: false },
+    },
+    {
+      identifier: NOTIF_ACTION.REMIND_15,
+      buttonTitle: '⏰ 15 min',
+      options: { opensApp: false },
+    },
+  ]);
+
+  await Notifications.setNotificationCategoryAsync('water-reminder', [
+    {
+      identifier: NOTIF_ACTION.WATER_DONE,
+      buttonTitle: '💧 Done!',
+      options: { opensApp: false },
+    },
+    {
+      identifier: NOTIF_ACTION.REMIND_15,
+      buttonTitle: '⏰ 15 min',
+      options: { opensApp: false },
+    },
+  ]);
+
+  await Notifications.setNotificationCategoryAsync('period-overdue', [
+    {
+      identifier: NOTIF_ACTION.PERIOD_STARTED,
+      buttonTitle: '🩸 It started',
+      options: { opensApp: true },
+    },
+    {
+      identifier: NOTIF_ACTION.PERIOD_NOT_YET,
+      buttonTitle: '⏳ Not yet',
+      options: { opensApp: false },
+    },
+  ]);
+
+  // ── Android channels ────────────────────────────────────────────────────────
   if (Platform.OS !== 'android') return;
 
   await Notifications.setNotificationChannelAsync('juno-cycle', {
@@ -74,6 +130,8 @@ async function scheduleNotification(
   title: string,
   body: string,
   date: Date,
+  categoryIdentifier?: string,
+  data?: Record<string, any>,
   channelId = 'juno-cycle'
 ): Promise<void> {
   // Skip dates already in the past — don't clutter the scheduler
@@ -86,6 +144,8 @@ async function scheduleNotification(
       title,
       body,
       sound: 'default',
+      categoryIdentifier,
+      data,
       ...(Platform.OS === 'android' && { channelId }),
     },
     trigger: {
@@ -101,6 +161,8 @@ async function scheduleDailyNotification(
   body: string,
   hour: number,
   minute: number,
+  categoryIdentifier?: string,
+  data?: Record<string, any>,
   channelId = 'juno-daily'
 ): Promise<void> {
   await Notifications.cancelScheduledNotificationAsync(id).catch(() => {});
@@ -110,6 +172,8 @@ async function scheduleDailyNotification(
       title,
       body,
       sound: 'default',
+      categoryIdentifier,
+      data,
       ...(Platform.OS === 'android' && { channelId }),
     },
     trigger: {
@@ -201,15 +265,16 @@ export async function scheduleAllNotifications(
       "Don't forget to take your pill today.",
       h,
       m,
+      'pill-reminder',
       'juno-daily'
     );
   }
 
   // Water reminders (morning, afternoon, evening)
   if (settings.waterReminderEnabled) {
-    await scheduleDailyNotification('water-1', '💧 Stay hydrated', 'Morning water check — start your day right!', 10, 0, 'juno-water');
-    await scheduleDailyNotification('water-2', '💧 Stay hydrated', 'Afternoon reminder — grab a glass of water!', 14, 0, 'juno-water');
-    await scheduleDailyNotification('water-3', '💧 Stay hydrated', 'Evening hydration check!', 18, 0, 'juno-water');
+    await scheduleDailyNotification('water-1', '💧 Stay hydrated', 'Morning water check — start your day right!', 10, 0, 'water-reminder', 'juno-water');
+    await scheduleDailyNotification('water-2', '💧 Stay hydrated', 'Afternoon reminder — grab a glass of water!', 14, 0, 'water-reminder', 'juno-water');
+    await scheduleDailyNotification('water-3', '💧 Stay hydrated', 'Evening hydration check!', 18, 0, 'water-reminder', 'juno-water');
   }
 }
 
@@ -222,6 +287,8 @@ export async function scheduleLatePeriodCheck(
     'period-late',
     '🗓 Period check-in',
     'Your period was expected a few days ago. This can be normal — log in Juno if it has started.',
-    triggerDate
+    triggerDate,
+    'period-overdue',
+    { expectedStart }
   );
 }

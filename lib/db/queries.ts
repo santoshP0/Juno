@@ -171,6 +171,7 @@ type RawLog = {
   bbt: number | null;
   weight: number | null;
   water_intake: number | null;
+  pill_taken: number | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -192,6 +193,7 @@ function mapLog(row: RawLog): DailyLog {
     bbt: row.bbt,
     weight: row.weight,
     waterIntake: row.water_intake,
+    pillTaken: row.pill_taken === null ? null : row.pill_taken === 1,
     notes: row.notes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -236,8 +238,8 @@ export async function upsertLog(
   await db.runAsync(
     `INSERT INTO daily_logs
        (date, flow, symptoms, moods, energy_level, sleep_hours, sleep_quality,
-        sex, discharge, cervical_position, bbt, weight, water_intake, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        sex, discharge, cervical_position, bbt, weight, water_intake, pill_taken, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(date) DO UPDATE SET
        flow = excluded.flow,
        symptoms = excluded.symptoms,
@@ -251,6 +253,7 @@ export async function upsertLog(
        bbt = excluded.bbt,
        weight = excluded.weight,
        water_intake = excluded.water_intake,
+       pill_taken = excluded.pill_taken,
        notes = excluded.notes,
        updated_at = datetime('now')`,
     log.date,
@@ -266,6 +269,7 @@ export async function upsertLog(
     log.bbt,
     log.weight,
     log.waterIntake,
+    log.pillTaken === null ? null : (log.pillTaken ? 1 : 0),
     log.notes
   );
 }
