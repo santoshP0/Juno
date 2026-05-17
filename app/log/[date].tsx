@@ -12,7 +12,22 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSQLiteContext } from 'expo-sqlite';
-import { ChevronLeft, Check, Trash2, Droplets, Thermometer, Weight, Droplet } from 'lucide-react-native';
+import {
+  ChevronLeft,
+  Check,
+  Trash2,
+  Droplets,
+  Thermometer,
+  Weight,
+  Droplet,
+  Zap,
+  Smile,
+  Battery,
+  Moon,
+  Heart,
+  Activity,
+  FileText,
+} from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
 import { Typography } from '../../components/ui/Typography';
@@ -27,7 +42,7 @@ import { deleteLog as deleteLogDB } from '../../lib/db/queries';
 
 import { Colors } from '../../constants/colors';
 import { Spacing, Radius } from '../../constants/theme';
-import { SYMPTOMS } from '../../constants/content';
+import { SYMPTOMS, PHASE_INFO } from '../../constants/content';
 import { formatDate } from '../../lib/utils/date';
 import type {
   FlowLevel,
@@ -39,14 +54,36 @@ import type {
   DailyLog,
 } from '../../types';
 
-// ─── Selectors ───────────────────────────────────────────────────────────────
+// ─── Icon map for SectionHeader ──────────────────────────────────────────────
 
-function SectionHeader({ title, icon }: { title: string; icon?: string }) {
+const SECTION_ICONS: Record<string, React.ComponentType<any>> = {
+  Droplets,
+  Zap,
+  Smile,
+  Battery,
+  Moon,
+  Heart,
+  Droplet,
+  Activity,
+  FileText,
+};
+
+// ─── SectionHeader ────────────────────────────────────────────────────────────
+
+function SectionHeader({ title, iconName, iconColor }: { title: string; iconName: string; iconColor: string }) {
   const colors = useColors();
+  const IconComponent = SECTION_ICONS[iconName];
   return (
     <View style={s.sectionHeader}>
-      {icon && <Typography style={{ fontSize: 18 }}>{icon}</Typography>}
-      <Typography variant="label" color={colors.textSecondary}>{title}</Typography>
+      <View
+        style={[
+          s.iconBox,
+          { backgroundColor: iconColor + '22', borderRadius: 9 },
+        ]}
+      >
+        {IconComponent && <IconComponent size={16} color={iconColor} />}
+      </View>
+      <Typography style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>{title}</Typography>
     </View>
   );
 }
@@ -310,15 +347,22 @@ function PillSelector({ value, onChange }: { value: boolean | null; onChange: (v
 
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
+const sLabel = { fontSize: 11, fontWeight: '600' as const, letterSpacing: 0.8, marginBottom: 8, marginLeft: 4 };
+
 export default function LogScreen() {
   const { date } = useLocalSearchParams<{ date: string }>();
   const router = useRouter();
   const colors = useColors();
   const db = useSQLiteContext();
   const { saveLog } = useCycle();
-  const { getLogByDate, removeLog } = useCycleStore();
+  const { getLogByDate, removeLog, prediction } = useCycleStore();
 
   const existing = useMemo(() => getLogByDate(date), [date, getLogByDate]);
+
+  const phaseLabel = useMemo(() => {
+    if (!prediction) return null;
+    return PHASE_INFO[prediction.currentPhase]?.name ?? null;
+  }, [prediction]);
 
   const [flow, setFlow] = useState<FlowLevel | null>(existing?.flow ?? null);
   const [symptoms, setSymptoms] = useState<Symptom[]>(existing?.symptoms ?? []);
@@ -404,16 +448,25 @@ export default function LogScreen() {
   return (
     <SafeAreaView style={[s.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={[s.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <ChevronLeft color={colors.text} size={24} />
+      <View style={[s.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={[s.backBtn, { backgroundColor: colors.surfaceSecondary }]}
+        >
+          <ChevronLeft color={colors.text} size={18} />
         </TouchableOpacity>
-        <View>
-          <Typography variant="h4">Daily log</Typography>
-          <Typography variant="caption" color={colors.textTertiary}>
+
+        <View style={s.headerCenter}>
+          <Typography style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>
             {formatDate(date, 'EEEE, MMM d')}
           </Typography>
+          {phaseLabel && (
+            <Typography style={{ fontSize: 12, color: colors.textTertiary }}>
+              {phaseLabel}
+            </Typography>
+          )}
         </View>
+
         <View style={s.headerRight}>
           {existing && (
             <TouchableOpacity onPress={handleDelete} style={s.deleteBtn}>
@@ -423,9 +476,9 @@ export default function LogScreen() {
           <TouchableOpacity
             onPress={handleSave}
             disabled={saving}
-            style={[s.saveBtn, { backgroundColor: colors.accent }]}
+            style={[s.saveBtn, { backgroundColor: colors.text }]}
           >
-            <Check size={18} color={Colors.white} />
+            <Check size={18} color={colors.background} />
           </TouchableOpacity>
         </View>
       </View>
@@ -437,14 +490,16 @@ export default function LogScreen() {
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
 
           {/* Flow */}
-          <Card padding={16}>
-            <SectionHeader title="Flow" icon="🔴" />
+          <Typography style={sLabel} color={colors.textTertiary}>FLOW</Typography>
+          <Card style={{ borderRadius: 20, marginBottom: 0 }} padding={16}>
+            <SectionHeader title="Flow" iconName="Droplets" iconColor="#E8A598" />
             <FlowSelector value={flow} onChange={setFlow} />
           </Card>
 
           {/* Symptoms */}
-          <Card padding={16}>
-            <SectionHeader title="Symptoms" icon="⚡" />
+          <Typography style={sLabel} color={colors.textTertiary}>SYMPTOMS</Typography>
+          <Card style={{ borderRadius: 20, marginBottom: 0 }} padding={16}>
+            <SectionHeader title="Symptoms" iconName="Zap" iconColor="#B8A5C8" />
             <View style={s.chipRow}>
               {SYMPTOMS.map((sym) => (
                 <SymptomChip
@@ -458,20 +513,23 @@ export default function LogScreen() {
           </Card>
 
           {/* Mood */}
-          <Card padding={16}>
-            <SectionHeader title="Mood" icon="😊" />
+          <Typography style={sLabel} color={colors.textTertiary}>MOOD</Typography>
+          <Card style={{ borderRadius: 20, marginBottom: 0 }} padding={16}>
+            <SectionHeader title="Mood" iconName="Smile" iconColor="#F5C37A" />
             <MoodSelector selected={moods} onToggle={toggleMood} />
           </Card>
 
           {/* Energy */}
-          <Card padding={16}>
-            <SectionHeader title="Energy level" icon="⚡" />
+          <Typography style={sLabel} color={colors.textTertiary}>ENERGY</Typography>
+          <Card style={{ borderRadius: 20, marginBottom: 0 }} padding={16}>
+            <SectionHeader title="Energy level" iconName="Battery" iconColor="#98C4B0" />
             <EnergySelector value={energyLevel} onChange={setEnergyLevel} />
           </Card>
 
           {/* Sleep */}
-          <Card padding={16}>
-            <SectionHeader title="Sleep" icon="🌙" />
+          <Typography style={sLabel} color={colors.textTertiary}>SLEEP</Typography>
+          <Card style={{ borderRadius: 20, marginBottom: 0 }} padding={16}>
+            <SectionHeader title="Sleep" iconName="Moon" iconColor="#B8A5C8" />
             <NumberInput
               label="Hours slept"
               value={sleepHours}
@@ -499,20 +557,23 @@ export default function LogScreen() {
           </Card>
 
           {/* Sex */}
-          <Card padding={16}>
-            <SectionHeader title="Sexual activity" icon="💑" />
+          <Typography style={sLabel} color={colors.textTertiary}>INTIMACY</Typography>
+          <Card style={{ borderRadius: 20, marginBottom: 0 }} padding={16}>
+            <SectionHeader title="Sexual activity" iconName="Heart" iconColor="#C2847A" />
             <SexSelector value={sex} onChange={setSex} />
           </Card>
 
           {/* Discharge */}
-          <Card padding={16}>
-            <SectionHeader title="Cervical mucus" icon="💧" />
+          <Typography style={sLabel} color={colors.textTertiary}>CERVICAL MUCUS</Typography>
+          <Card style={{ borderRadius: 20, marginBottom: 0 }} padding={16}>
+            <SectionHeader title="Cervical mucus" iconName="Droplet" iconColor="#98C4B0" />
             <DischargeSelector value={discharge} onChange={setDischarge} />
           </Card>
 
           {/* BBT & Weight */}
-          <Card padding={16}>
-            <SectionHeader title="Body metrics" icon="📊" />
+          <Typography style={sLabel} color={colors.textTertiary}>BODY METRICS</Typography>
+          <Card style={{ borderRadius: 20, marginBottom: 0 }} padding={16}>
+            <SectionHeader title="Body metrics" iconName="Activity" iconColor="#C2847A" />
             <NumberInput
               icon={Thermometer}
               label="Basal body temp"
@@ -541,8 +602,9 @@ export default function LogScreen() {
           </Card>
 
           {/* Notes */}
-          <Card padding={16}>
-            <SectionHeader title="Notes" icon="📝" />
+          <Typography style={sLabel} color={colors.textTertiary}>NOTES</Typography>
+          <Card style={{ borderRadius: 20, marginBottom: 0 }} padding={16}>
+            <SectionHeader title="Notes" iconName="FileText" iconColor="#A89C95" />
             <TextInput
               value={notes}
               onChangeText={setNotes}
@@ -582,11 +644,18 @@ const s = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: 12,
-    borderBottomWidth: 1,
+    borderBottomWidth: 0.5,
     gap: 12,
   },
-  backBtn: { padding: 4 },
-  headerRight: { marginLeft: 'auto', flexDirection: 'row', gap: 10, alignItems: 'center' },
+  backBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerCenter: { flex: 1, alignItems: 'center' },
+  headerRight: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   deleteBtn: { padding: 8 },
   saveBtn: {
     width: 38,
@@ -595,12 +664,13 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  scroll: { padding: Spacing.md, gap: Spacing.sm, paddingBottom: Spacing['3xl'] },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  scroll: { padding: Spacing.md, gap: 12, paddingBottom: Spacing['3xl'] },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  iconBox: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   flowRow: { flexDirection: 'row', gap: 8 },
   flowBtn: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 14,
     borderRadius: Radius.lg,
     borderWidth: 1.5,
     alignItems: 'center',

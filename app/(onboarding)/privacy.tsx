@@ -3,10 +3,9 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, Linking, AppState, AppS
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { Bell, BellOff } from 'lucide-react-native';
+import { ChevronLeft, Sparkles, Bell, BellOff, ShieldOff } from 'lucide-react-native';
 import { Typography } from '../../components/ui/Typography';
 import { Button } from '../../components/ui/Button';
-import { Card } from '../../components/ui/Card';
 import { useColors } from '../../hooks/useTheme';
 import { useSettingsStore } from '../../stores/settingsStore';
 import {
@@ -20,13 +19,22 @@ import { useCycleStore } from '../../stores/cycleStore';
 import { useUserStore } from '../../stores/userStore';
 import { calculatePredictions } from '../../lib/predictions/algorithm';
 
-const PRIVACY_POINTS = [
-  { emoji: '📵', text: 'No internet connection required — ever.' },
-  { emoji: '🚫', text: 'No user accounts, no sign-up, no sign-in.' },
-  { emoji: '🔒', text: 'All data stored locally on your device only.' },
-  { emoji: '🚀', text: 'No analytics, no ads, no tracking SDKs.' },
-  { emoji: '📦', text: 'Export your data to a file you control, anytime.' },
-  { emoji: '🗑️', text: 'Delete all your data instantly from Settings.' },
+const FEATURE_ROWS = [
+  {
+    icon: Sparkles,
+    title: 'On-device by default',
+    desc: 'Your cycle data is stored locally on this phone. Never uploaded.',
+  },
+  {
+    icon: Bell,
+    title: 'Encrypted local backup',
+    desc: 'Export a passphrase-protected file you control, anytime.',
+  },
+  {
+    icon: ShieldOff,
+    title: 'No accounts, no ads',
+    desc: 'Nothing to sign up for. No trackers. No data brokers. Ever.',
+  },
 ];
 
 export default function PrivacyScreen() {
@@ -75,13 +83,13 @@ export default function PrivacyScreen() {
       granted = await requestNotificationPermission();
       setRequesting(false);
     }
-    
+
     // If we have permission, schedule the initial alerts
     if (granted) {
       let { prediction, cycles } = useCycleStore.getState();
       const { notifications } = useSettingsStore.getState();
       const { profile } = useUserStore.getState();
-      
+
       // If prediction is missing (which is true during first-time onboarding),
       // calculate it now from the data we just added in cycle-info.tsx
       if (!prediction && cycles.length > 0) {
@@ -98,7 +106,7 @@ export default function PrivacyScreen() {
       }
     } else {
     }
-    
+
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setOnboardingComplete(true);
     router.replace('/(tabs)/');
@@ -112,38 +120,74 @@ export default function PrivacyScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.iconContainer}>
-          <Typography style={styles.emoji}>🛡️</Typography>
-        </View>
-        <Typography variant="h2" align="center">Your privacy promise</Typography>
-        <Typography
-          variant="body2"
-          align="center"
-          color={colors.textSecondary}
-          style={{ marginTop: Spacing.sm, marginBottom: Spacing.xl }}
+      {/* OnbHeader */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={[styles.backButton, { backgroundColor: colors.surfaceSecondary }]}
+          activeOpacity={0.7}
         >
-          Juno was built with privacy at its core. Here's what that means for you:
+          <ChevronLeft size={18} color={colors.text} />
+        </TouchableOpacity>
+        <View style={styles.progressBarTrack}>
+          <View
+            style={[styles.progressBarFill, { backgroundColor: colors.surfaceSecondary }]}
+          />
+          <View
+            style={[
+              styles.progressBarFillActive,
+              { backgroundColor: colors.accent, width: `${(5 / 5) * 100}%` },
+            ]}
+          />
+        </View>
+        <Typography style={[styles.stepCounter, { color: colors.textSecondary }]}>
+          5 of 5
+        </Typography>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Eyebrow + Title + Subtitle */}
+        <Typography style={[styles.eyebrow, { color: colors.accent }]}>
+          OUR PROMISE
+        </Typography>
+        <Typography style={[styles.title, { color: colors.text }]}>
+          Your data stays yours.
+        </Typography>
+        <Typography style={[styles.subtitle, { color: colors.textSecondary }]}>
+          Cycle tracking shouldn't come with a privacy cost.
         </Typography>
 
-        <Card style={{ width: '100%' }} padding={20}>
-          {PRIVACY_POINTS.map((p, i) => (
-            <View key={i} style={styles.point}>
-              <Typography style={styles.pointEmoji}>{p.emoji}</Typography>
-              <Typography variant="body2" style={{ flex: 1 }}>
-                {p.text}
-              </Typography>
-            </View>
-          ))}
-        </Card>
-
-        <View style={[styles.pledge, { backgroundColor: colors.accent + '22' }]}>
-          <Typography variant="label" align="center" color={colors.accentDark}>
-            "Your body data belongs to you, and only you."
-          </Typography>
+        {/* Feature rows */}
+        <View style={styles.featureRows}>
+          {FEATURE_ROWS.map((row, i) => {
+            const IconComponent = row.icon;
+            return (
+              <View key={i} style={styles.featureRow}>
+                <View
+                  style={[
+                    styles.featureIconBox,
+                    { backgroundColor: colors.accent + '18' },
+                  ]}
+                >
+                  <IconComponent size={17} color={colors.accent} />
+                </View>
+                <View style={styles.featureText}>
+                  <Typography style={[styles.featureTitle, { color: colors.text }]}>
+                    {row.title}
+                  </Typography>
+                  <Typography style={[styles.featureDesc, { color: colors.textSecondary }]}>
+                    {row.desc}
+                  </Typography>
+                </View>
+              </View>
+            );
+          })}
         </View>
 
-        {/* Notification permission */}
+        {/* Notification permission card */}
         <TouchableOpacity
           onPress={permStatus !== 'granted' ? handleRequestNotifications : undefined}
           activeOpacity={permStatus === 'granted' ? 1 : 0.8}
@@ -157,7 +201,7 @@ export default function PrivacyScreen() {
               borderColor:
                 permStatus === 'granted'
                   ? Colors.success + '50'
-                  : colors.accent + '50',
+                  : colors.accent + '40',
             },
           ]}
         >
@@ -182,7 +226,7 @@ export default function PrivacyScreen() {
               style={{ marginTop: 2 }}
             >
               {permStatus === 'granted'
-                ? 'You\'ll get reminders before your period and on fertile days.'
+                ? "You'll get reminders before your period and on fertile days."
                 : 'Tap to allow — get alerts before your period and during your fertile window.'}
             </Typography>
           </View>
@@ -211,42 +255,121 @@ export default function PrivacyScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+
+  // OnbHeader
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 12,
+    gap: 10,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progressBarTrack: {
+    height: 3,
+    borderRadius: 4,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  progressBarFill: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 4,
+  },
+  progressBarFillActive: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    borderRadius: 4,
+  },
+  stepCounter: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    alignSelf: 'flex-end',
+  },
+
   content: {
     paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.lg,
+    paddingTop: Spacing.sm,
     paddingBottom: Spacing.lg,
     flexGrow: 1,
-    alignItems: 'center',
   },
-  iconContainer: {
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-    marginTop: Spacing.sm,
+
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 10,
   },
-  emoji: { fontSize: 52, textAlign: 'center', lineHeight: 64 },
-  point: {
+  title: {
+    fontSize: 26,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 13.5,
+    lineHeight: 20,
+    marginBottom: Spacing.xl,
+  },
+
+  featureRows: {
+    marginBottom: Spacing.lg,
+  },
+  featureRow: {
     flexDirection: 'row',
+    gap: 14,
     alignItems: 'flex-start',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
+    marginBottom: 16,
   },
-  pointEmoji: { fontSize: 20, width: 28 },
-  pledge: {
-    marginTop: Spacing.xl,
-    padding: Spacing.md,
-    borderRadius: 16,
-    width: '100%',
+  featureIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
+  featureText: {
+    flex: 1,
+  },
+  featureTitle: {
+    fontSize: 14.5,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  featureDesc: {
+    fontSize: 12.5,
+    lineHeight: 18,
+  },
+
   notifCard: {
-    marginTop: Spacing.md,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
-    padding: Spacing.md,
-    borderRadius: Radius.xl,
+    padding: 14,
+    borderRadius: 14,
     borderWidth: 1,
-    width: '100%',
+    marginBottom: Spacing.md,
   },
-  footer: { padding: Spacing.xl, paddingTop: 0, gap: 4 },
-  skipNotif: { paddingVertical: 8, alignItems: 'center' },
+
+  footer: {
+    padding: Spacing.xl,
+    paddingTop: 0,
+    gap: 4,
+  },
+  skipNotif: {
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
 });

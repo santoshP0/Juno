@@ -19,6 +19,7 @@ import { Card } from '../../components/ui/Card';
 import { useColors } from '../../hooks/useTheme';
 import { useUserStore } from '../../stores/userStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { useCycleStore } from '../../stores/cycleStore';
 import { Colors } from '../../constants/colors';
 import { Spacing, Radius } from '../../constants/theme';
 import type { Theme } from '../../types';
@@ -98,6 +99,7 @@ export default function ProfileScreen() {
   const colors = useColors();
   const profile = useUserStore((s) => s.profile);
   const { mode } = useSettingsStore();
+  const { cycles } = useCycleStore();
 
   const modeLabel = useMemo(() => {
     const MAP: Record<string, string> = {
@@ -110,6 +112,11 @@ export default function ProfileScreen() {
     return MAP[mode] ?? mode;
   }, [mode]);
 
+  const initial = useMemo(() => {
+    const name = profile?.name ?? 'J';
+    return name.charAt(0).toUpperCase();
+  }, [profile?.name]);
+
   const navigate = useCallback(
     (path: string) => () => router.push(path as any),
     [router]
@@ -121,7 +128,9 @@ export default function ProfileScreen() {
         {/* Profile hero */}
         <View style={styles.hero}>
           <View style={[styles.avatar, { backgroundColor: colors.accent + '33' }]}>
-            <Typography style={{ fontSize: 40 }}>🌙</Typography>
+            <Typography style={{ fontSize: 32, fontWeight: '700', color: colors.accent }}>
+              {initial}
+            </Typography>
           </View>
           <Typography variant="h3">{profile?.name || 'Your profile'}</Typography>
           <View style={[styles.modeBadge, { backgroundColor: Colors.sage + '33' }]}>
@@ -180,7 +189,7 @@ export default function ProfileScreen() {
           />
         </Card>
 
-        {/* Stats summary */}
+        {/* Stats summary — 3-column */}
         <Card padding={16}>
           <Typography variant="label" color={colors.textSecondary} style={{ marginBottom: 12 }}>
             Your cycle summary
@@ -203,17 +212,29 @@ export default function ProfileScreen() {
                 Avg period (days)
               </Typography>
             </View>
+            <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+            <View style={styles.statItem}>
+              <Typography variant="h3" color={Colors.teal}>
+                {cycles.length}
+              </Typography>
+              <Typography variant="caption" color={colors.textTertiary}>
+                Cycles tracked
+              </Typography>
+            </View>
           </View>
         </Card>
 
-        <Typography
-          variant="caption"
-          align="center"
-          color={colors.textTertiary}
-          style={{ marginTop: Spacing.sm }}
-        >
-          Juno v1.0.0 · All data stored privately on your device
-        </Typography>
+        {/* Privacy footer */}
+        <View style={styles.privacyFooter}>
+          <Shield size={12} color={colors.textTertiary} />
+          <Typography
+            variant="caption"
+            color={colors.textTertiary}
+            style={styles.privacyText}
+          >
+            All data stays on this device
+          </Typography>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -265,4 +286,12 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' },
   statItem: { alignItems: 'center', flex: 1, gap: 4 },
   statDivider: { width: 1, height: 40 },
+  privacyFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    marginTop: Spacing.sm,
+  },
+  privacyText: { fontSize: 11 },
 });

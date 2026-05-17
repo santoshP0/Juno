@@ -21,6 +21,7 @@ import {
   isWithinInterval,
 } from 'date-fns';
 
+import { Sparkles } from 'lucide-react-native';
 import { Typography } from '../../components/ui/Typography';
 import { Card } from '../../components/ui/Card';
 import { StatCard } from '../../components/widgets/StatCard';
@@ -33,7 +34,7 @@ import {
   calculateRegularityScore,
   formatRegularityScore,
 } from '../../lib/utils/formatting';
-import type { InsightTimeRange, Symptom, Mood } from '../../types';
+import type { InsightTimeRange, Symptom, Mood, DailyLog } from '../../types';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -127,7 +128,7 @@ function MiniTriStat({
   if (total === 0) return null;
 
   return (
-    <Card padding={16}>
+    <Card padding={16} style={{ borderRadius: 20 }}>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {[
           { count: low, label: lowLabel, color: lowColor },
@@ -161,7 +162,7 @@ function MiniTriStat({
 
 /** Horizontal scrollable day-by-day activity cards (inspired by reference image) */
 function DayTimeline({ logs, range }: {
-  logs: ReturnType<typeof useCycleStore>['logs'];
+  logs: DailyLog[];
   range: InsightTimeRange;
 }) {
   const colors = useColors();
@@ -182,7 +183,7 @@ function DayTimeline({ logs, range }: {
   });
 
   return (
-    <Card padding={0} style={{ overflow: 'hidden' }}>
+    <Card padding={0} style={{ overflow: 'hidden', borderRadius: 20 }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 }}>
         <Typography variant="label" color={colors.textSecondary} style={{ fontWeight: '700' }}>
           Daily activity — {range === '7d' ? 'last 7 days' : 'last 14 days'}
@@ -522,6 +523,7 @@ export default function InsightsScreen() {
         {/* ── Header ─────────────────────────────────────────────────────── */}
         <View style={s.header}>
           <View>
+            <Typography style={s.headerLabel} color={colors.textTertiary}>INSIGHTS</Typography>
             <Typography variant="h3" style={{ fontWeight: '800' }}>Insights</Typography>
             <Typography variant="caption" color={colors.textTertiary} style={{ marginTop: 2 }}>
               {rangeLabel(range)} · {filteredLogs.length} logs · {filteredCycles.length} cycles
@@ -546,13 +548,13 @@ export default function InsightsScreen() {
                 style={[
                   s.filterChip,
                   active
-                    ? { backgroundColor: colors.accent, borderColor: colors.accent }
+                    ? { backgroundColor: colors.text, borderColor: colors.text, borderRadius: 999 }
                     : { backgroundColor: colors.surface, borderColor: colors.border },
                 ]}
               >
                 <Typography
                   variant="caption"
-                  color={active ? Colors.white : colors.textSecondary}
+                  color={active ? colors.background : colors.textSecondary}
                   style={{ fontWeight: active ? '700' : '500' }}
                 >
                   {r.label}
@@ -563,15 +565,19 @@ export default function InsightsScreen() {
         </ScrollView>
 
         {!hasData ? (
-          <EmptyState
-            emoji="📊"
-            title="No data yet"
-            description={
-              range === 'today' || range === 'yesterday'
+          <View style={{ alignItems: 'center', paddingVertical: 48, paddingHorizontal: 24 }}>
+            <View style={{ width: 72, height: 72, borderRadius: 20, backgroundColor: colors.accent + '18', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+              <Sparkles size={36} color={colors.accent} />
+            </View>
+            <Typography variant="h4" align="center" style={{ fontWeight: '700', marginBottom: 8 }}>
+              Start logging to see insights
+            </Typography>
+            <Typography variant="body2" align="center" color={colors.textSecondary} style={{ lineHeight: 22, maxWidth: 260 }}>
+              {range === 'today' || range === 'yesterday'
                 ? `No logs found for ${rangeLabel(range).toLowerCase()}. Start logging to see your daily snapshot.`
-                : 'Log your symptoms, pills, water intake, and more to see your personal health trends here.'
-            }
-          />
+                : 'Log your symptoms, pills, water intake, and more to see your personal health trends here.'}
+            </Typography>
+          </View>
         ) : (
           <>
             {/* ── DAY TIMELINE (7d / 30d) ─────────────────────────────────── */}
@@ -597,7 +603,7 @@ export default function InsightsScreen() {
                 </View>
 
                 {cycleLengthData.length > 1 && (
-                  <Card padding={16}>
+                  <Card padding={16} style={{ borderRadius: 20 }}>
                     <Typography variant="label" color={colors.textSecondary} style={s.chartTitle}>
                       Cycle length over time
                     </Typography>
@@ -621,7 +627,7 @@ export default function InsightsScreen() {
                 <SectionHeader title="Symptoms & moods" />
 
                 {symptomFreq.length > 0 && (
-                  <Card padding={16}>
+                  <Card padding={16} style={{ borderRadius: 20 }}>
                     <Typography variant="label" color={colors.textSecondary} style={s.chartTitle}>
                       Most frequent symptoms
                     </Typography>
@@ -638,7 +644,7 @@ export default function InsightsScreen() {
                 )}
 
                 {moodFreq.length > 0 && (
-                  <Card padding={16}>
+                  <Card padding={16} style={{ borderRadius: 20 }}>
                     <Typography variant="label" color={colors.textSecondary} style={s.chartTitle}>
                       Mood patterns
                     </Typography>
@@ -698,7 +704,7 @@ export default function InsightsScreen() {
                 </View>
 
                 {sleepData.length > 2 && (
-                  <Card padding={16}>
+                  <Card padding={16} style={{ borderRadius: 20 }}>
                     <Typography variant="label" color={colors.textSecondary} style={s.chartTitle}>
                       Sleep hours (last 14 logs)
                     </Typography>
@@ -754,7 +760,7 @@ export default function InsightsScreen() {
                 </View>
 
                 {pillPieData.length > 0 && (
-                  <Card padding={16}>
+                  <Card padding={16} style={{ borderRadius: 20 }}>
                     <Typography variant="label" color={colors.textSecondary} style={s.chartTitle}>
                       Pill compliance breakdown
                     </Typography>
@@ -796,7 +802,7 @@ export default function InsightsScreen() {
                 )}
 
                 {waterData.length > 0 && (
-                  <Card padding={16}>
+                  <Card padding={16} style={{ borderRadius: 20 }}>
                     <Typography variant="label" color={colors.textSecondary} style={s.chartTitle}>
                       Water intake (last 14 logs)
                     </Typography>
@@ -832,7 +838,7 @@ export default function InsightsScreen() {
                 <SectionHeader title="Physical tracking" />
 
                 {bbtData.length > 3 && (
-                  <Card padding={16}>
+                  <Card padding={16} style={{ borderRadius: 20 }}>
                     <Typography variant="label" color={colors.textSecondary} style={s.chartTitle}>
                       Basal body temperature
                     </Typography>
@@ -854,7 +860,7 @@ export default function InsightsScreen() {
                 )}
 
                 {weightData.length > 2 && (
-                  <Card padding={16}>
+                  <Card padding={16} style={{ borderRadius: 20 }}>
                     <Typography variant="label" color={colors.textSecondary} style={s.chartTitle}>
                       Weight trend
                     </Typography>
@@ -879,6 +885,7 @@ export default function InsightsScreen() {
               <Card
                 padding={16}
                 style={{
+                  borderRadius: 20,
                   borderLeftWidth: 3,
                   borderLeftColor: colors.accent,
                   backgroundColor: colors.accent + '08',
@@ -909,6 +916,7 @@ const s = StyleSheet.create({
   container:   { flex: 1 },
   scroll:      { padding: Spacing.md, gap: Spacing.md, paddingBottom: Spacing['3xl'] },
   header:      { paddingTop: Spacing.sm, paddingBottom: 4, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  headerLabel: { fontSize: 10, letterSpacing: 1.5, fontWeight: '600', marginBottom: 2 },
 
   // Filter chips
   filterRow: {

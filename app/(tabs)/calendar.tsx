@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar } from 'react-native-calendars';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, getDaysInMonth, getDate } from 'date-fns';
 
 import { Typography } from '../../components/ui/Typography';
 import { Card } from '../../components/ui/Card';
@@ -64,13 +64,19 @@ const LEGEND = [
   { color: Colors.calendar.today, label: 'Today' },
 ];
 
+const PHASE_SEGMENTS = [
+  { color: Colors.phases.menstrual, name: 'Menstrual', flex: 1 },
+  { color: Colors.phases.follicular, name: 'Follicular', flex: 1 },
+  { color: Colors.phases.ovulation, name: 'Ovulation', flex: 1 },
+  { color: Colors.phases.luteal, name: 'Luteal', flex: 1 },
+];
+
 export default function CalendarScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
   const colors = useColors();
   const { cycles, logs, prediction } = useCycleStore();
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [showLegend, setShowLegend] = useState(false);
   const [today, setToday] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   useEffect(() => {
@@ -114,23 +120,52 @@ export default function CalendarScreen() {
     [logs, today]
   );
 
+  // Phase ribbon: today marker position
+  const todayMarkerPercent = useMemo(() => {
+    const todayDate = new Date();
+    const dayOfMonth = getDate(todayDate);
+    const daysInMonth = getDaysInMonth(todayDate);
+    return (dayOfMonth / daysInMonth) * 100;
+  }, []);
+
+  const isViewingCurrentMonth = useMemo(() => {
+    const now = new Date();
+    return (
+      currentMonth.getFullYear() === now.getFullYear() &&
+      currentMonth.getMonth() === now.getMonth()
+    );
+  }, [currentMonth]);
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
+            <Typography
+              variant="label"
+              style={{ fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 }}
+              color={colors.textTertiary}
+            >
+              CALENDAR
+            </Typography>
             <Typography variant="h3">{format(currentMonth, 'MMMM yyyy')}</Typography>
           </View>
           <View style={styles.headerRight}>
             <TouchableOpacity onPress={goToday} style={[styles.todayBtn, { borderColor: colors.accent }]}>
               <Typography variant="label" color={colors.accent}>Today</Typography>
             </TouchableOpacity>
-            <TouchableOpacity onPress={goPrev} style={styles.navBtn}>
-              <ChevronLeft color={colors.text} size={20} />
+            <TouchableOpacity
+              onPress={goPrev}
+              style={[styles.navBtn, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}
+            >
+              <ChevronLeft color={colors.text} size={18} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={goNext} style={styles.navBtn}>
-              <ChevronRight color={colors.text} size={20} />
+            <TouchableOpacity
+              onPress={goNext}
+              style={[styles.navBtn, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}
+            >
+              <ChevronRight color={colors.text} size={18} />
             </TouchableOpacity>
           </View>
         </View>
@@ -170,56 +205,127 @@ export default function CalendarScreen() {
           />
         </Card>
 
-        {/* Legend toggle */}
-        <TouchableOpacity
-          onPress={() => setShowLegend((v) => !v)}
-          style={styles.legendToggle}
-        >
-          <Typography variant="label" color={colors.accent}>
-            {showLegend ? 'Hide legend' : 'Show legend'}
-          </Typography>
-        </TouchableOpacity>
-
-        {showLegend && (
-          <Card padding={14} style={styles.legendCard}>
-            {LEGEND.map((l) => (
-              <View key={l.label} style={styles.legendRow}>
-                <View style={[styles.legendDot, { backgroundColor: l.color }]} />
-                <Typography variant="body2" color={colors.textSecondary}>
-                  {l.label}
+        {/* Phase ribbon */}
+        {prediction && (
+          <View style={styles.phaseRibbonContainer}>
+            <View style={styles.phaseRibbon}>
+              {PHASE_SEGMENTS.map((seg, i) => (
+                <View
+                  key={seg.name}
+                  style={[
+                    styles.phaseSegment,
+                    {
+                      backgroundColor: seg.color + 'B3', // ~70% opacity
+                      flex: seg.flex,
+                      borderTopLeftRadius: i === 0 ? 3 : 0,
+                      borderBottomLeftRadius: i === 0 ? 3 : 0,
+                      borderTopRightRadius: i === PHASE_SEGMENTS.length - 1 ? 3 : 0,
+                      borderBottomRightRadius: i === PHASE_SEGMENTS.length - 1 ? 3 : 0,
+                    },
+                  ]}
+                />
+              ))}
+              {/* Today marker */}
+              {isViewingCurrentMonth && (
+                <View
+                  style={[
+                    styles.todayMarker,
+                    {
+                      left: `${todayMarkerPercent}%` as any,
+                      backgroundColor: isDark ? Colors.white : '#1a1a1a',
+                    },
+                  ]}
+                />
+              )}
+            </View>
+            <View style={styles.phaseLabels}>
+              {PHASE_SEGMENTS.map((seg) => (
+                <Typography
+                  key={seg.name}
+                  style={styles.phaseLabel}
+                  color={colors.textTertiary}
+                >
+                  {seg.name}
                 </Typography>
-              </View>
-            ))}
-          </Card>
+              ))}
+            </View>
+          </View>
         )}
+
+        {/* Legend — always visible horizontal strip */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.legendStrip}
+        >
+          {LEGEND.map((l) => (
+            <View key={l.label} style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: l.color }]} />
+              <Typography style={styles.legendLabel} color={colors.textSecondary}>
+                {l.label}
+              </Typography>
+            </View>
+          ))}
+        </ScrollView>
 
         {/* Today's summary */}
         <Card padding={16} style={styles.todayCard}>
-          <Typography variant="label" color={colors.textSecondary} style={{ marginBottom: 8 }}>
-            Today — {formatDate(new Date(), 'MMM d')}
-          </Typography>
+          <View style={styles.todayHeader}>
+            <Typography variant="label" color={colors.textSecondary}>
+              Today — {formatDate(new Date(), 'MMM d')}
+            </Typography>
+          </View>
+
           {selectedDayLog ? (
-            <View style={styles.logSummary}>
-              {selectedDayLog.flow && (
-                <Typography variant="body2">
-                  Flow: <Typography variant="label">{selectedDayLog.flow}</Typography>
+            <View style={styles.statGrid}>
+              {/* Flow tile */}
+              <View style={[styles.statTile, { backgroundColor: colors.surfaceSecondary }]}>
+                <Typography style={styles.statTileLabel} color={colors.textTertiary}>
+                  FLOW
                 </Typography>
-              )}
-              {selectedDayLog.moods.length > 0 && (
-                <Typography variant="body2">
-                  Mood: <Typography variant="label">{selectedDayLog.moods.join(', ')}</Typography>
+                <Typography style={styles.statTileValue} color={colors.text}>
+                  {selectedDayLog.flow ?? '—'}
                 </Typography>
-              )}
-              {selectedDayLog.symptoms.length > 0 && (
-                <Typography variant="body2">
-                  Symptoms: <Typography variant="label">{selectedDayLog.symptoms.length} logged</Typography>
+              </View>
+              {/* Moods tile */}
+              <View style={[styles.statTile, { backgroundColor: colors.surfaceSecondary }]}>
+                <Typography style={styles.statTileLabel} color={colors.textTertiary}>
+                  MOODS
                 </Typography>
-              )}
+                <Typography style={styles.statTileValue} color={colors.text}>
+                  {selectedDayLog.moods.length > 0 ? `${selectedDayLog.moods.length} moods` : '—'}
+                </Typography>
+              </View>
+              {/* Symptoms tile */}
+              <View style={[styles.statTile, { backgroundColor: colors.surfaceSecondary }]}>
+                <Typography style={styles.statTileLabel} color={colors.textTertiary}>
+                  SYMPTOMS
+                </Typography>
+                <Typography style={styles.statTileValue} color={colors.text}>
+                  {selectedDayLog.symptoms.length > 0 ? `${selectedDayLog.symptoms.length} sympt.` : '—'}
+                </Typography>
+              </View>
+              {/* Energy tile */}
+              <View style={[styles.statTile, { backgroundColor: colors.surfaceSecondary }]}>
+                <Typography style={styles.statTileLabel} color={colors.textTertiary}>
+                  ENERGY
+                </Typography>
+                <Typography style={styles.statTileValue} color={colors.text}>
+                  {selectedDayLog.energyLevel ?? '—'}
+                </Typography>
+              </View>
             </View>
           ) : (
-            <TouchableOpacity onPress={() => router.push(`/log/${today}`)}>
-              <Typography variant="body2" color={colors.accent}>
-                Tap to log today →
+            <TouchableOpacity
+              onPress={() => router.push(`/log/${today}`)}
+              style={[styles.logCtaBtn, { backgroundColor: colors.accent + '1F' }]}
+            >
+              <Typography
+                variant="label"
+                color={colors.accent}
+                style={{ fontSize: 15, textAlign: 'center' }}
+              >
+                Log today →
               </Typography>
             </TouchableOpacity>
           )}
@@ -241,12 +347,74 @@ const styles = StyleSheet.create({
   headerLeft: {},
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   todayBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
-  navBtn: { padding: 6 },
+  navBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   calCard: { borderRadius: Radius.xl },
-  legendToggle: { alignSelf: 'flex-end', paddingVertical: 4 },
-  legendCard: { borderRadius: Radius.xl },
-  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
-  legendDot: { width: 12, height: 12, borderRadius: 6 },
+  // Phase ribbon
+  phaseRibbonContainer: { marginHorizontal: 16, marginTop: -4 },
+  phaseRibbon: {
+    height: 6,
+    borderRadius: 3,
+    flexDirection: 'row',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  phaseSegment: { height: 6 },
+  todayMarker: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 2,
+  },
+  phaseLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  phaseLabel: { fontSize: 9, flex: 1, textAlign: 'center' },
+  // Legend strip
+  legendStrip: {
+    flexDirection: 'row',
+    gap: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendDot: { width: 10, height: 10, borderRadius: 5 },
+  legendLabel: { fontSize: 11 },
+  // Today card
   todayCard: { borderRadius: Radius.xl },
-  logSummary: { gap: 4 },
+  todayHeader: { marginBottom: 12 },
+  statGrid: { flexDirection: 'row', gap: 8 },
+  statTile: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    gap: 4,
+  },
+  statTileLabel: {
+    fontSize: 9,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+  },
+  statTileValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  logCtaBtn: {
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

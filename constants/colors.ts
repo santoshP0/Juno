@@ -94,18 +94,18 @@ export const Colors = {
 
   // Light theme base — neutral, overridden by accent theme in useColors()
   light: {
-    background: '#FAFAFA',
+    background: '#FBF7F4',
     surface: '#FFFFFF',
-    surfaceSecondary: '#F5F5FA',
-    text: '#1A1A2E',
-    textSecondary: '#555570',
-    textTertiary: '#8888A0',
-    border: '#E5E5F0',
-    borderLight: '#EEEEEE',
-    icon: '#1A1A2E',
+    surfaceSecondary: '#F4EEE9',
+    text: '#231D1A',
+    textSecondary: '#7A6E68',
+    textTertiary: '#A89C95',
+    border: '#EDE3DC',
+    borderLight: '#F4EEE9',
+    icon: '#231D1A',
     tabBar: '#FFFFFF',
-    tabBarActive: '#FF2D78',
-    tabBarInactive: '#8888A0',
+    tabBarActive: '#C2847A',
+    tabBarInactive: '#A89C95',
   },
 
   // Dark theme base — neutral, overridden by accent theme in useColors()

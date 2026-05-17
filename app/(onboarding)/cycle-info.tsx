@@ -11,8 +11,8 @@ import {
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { ChevronLeft, Sparkles } from 'lucide-react-native';
 import { Typography } from '../../components/ui/Typography';
-import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useColors } from '../../hooks/useTheme';
 import { useUserStore } from '../../stores/userStore';
@@ -86,7 +86,7 @@ export default function CycleInfoScreen() {
     };
     await upsertUser(db, updatedProfile as any);
     const id = await insertCycle(db, lastPeriod);
-    
+
     // Update store so predictions can be calculated
     addCycle({
       id,
@@ -107,87 +107,135 @@ export default function CycleInfoScreen() {
     ? format(selectedDate, 'MMMM d, yyyy')
     : 'Tap to select date';
 
+  const cycleLengthNum = parseInt(cycleLength, 10) || 28;
+  const periodLengthNum = parseInt(periodLength, 10) || 5;
+
+  const handleCycleDecrement = () => {
+    const next = Math.max(21, cycleLengthNum - 1);
+    setCycleLength(String(next));
+  };
+  const handleCycleIncrement = () => {
+    const next = Math.min(40, cycleLengthNum + 1);
+    setCycleLength(String(next));
+  };
+  const handlePeriodDecrement = () => {
+    const next = Math.max(2, periodLengthNum - 1);
+    setPeriodLength(String(next));
+  };
+  const handlePeriodIncrement = () => {
+    const next = Math.min(10, periodLengthNum + 1);
+    setPeriodLength(String(next));
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
+        {/* OnbHeader */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={[styles.backButton, { backgroundColor: colors.surfaceSecondary }]}
+            activeOpacity={0.7}
+          >
+            <ChevronLeft size={18} color={colors.text} />
+          </TouchableOpacity>
+          <View style={styles.progressBarTrack}>
+            <View
+              style={[
+                styles.progressBarFill,
+                { backgroundColor: colors.surfaceSecondary },
+              ]}
+            />
+            <View
+              style={[
+                styles.progressBarFillActive,
+                { backgroundColor: colors.accent, width: `${(2 / 5) * 100}%` },
+              ]}
+            />
+          </View>
+          <Typography style={[styles.stepCounter, { color: colors.textSecondary }]}>
+            2 of 5
+          </Typography>
+        </View>
+
         <ScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.iconContainer}>
-            <Typography style={styles.emoji}>📅</Typography>
-          </View>
-          <Typography variant="h2" align="center">Your cycle details</Typography>
+          {/* Eyebrow + Title + Subtitle */}
           <Typography
-            variant="body2"
-            align="center"
-            color={colors.textSecondary}
-            style={{ marginTop: Spacing.sm, marginBottom: Spacing.xl }}
+            style={[styles.eyebrow, { color: colors.accent }]}
           >
-            These help us make accurate predictions from day one.
+            YOUR CYCLE
+          </Typography>
+          <Typography style={[styles.title, { color: colors.text }]}>
+            A bit about your cycle.
+          </Typography>
+          <Typography style={[styles.subtitle, { color: colors.textSecondary }]}>
+            A rough estimate is fine — we fine-tune as you log.
           </Typography>
 
-          {/* Quick date pickers */}
-          <Typography variant="label" color={colors.textSecondary} style={styles.sectionLabel}>
+          {/* Last period section */}
+          <Typography style={[styles.sectionLabel, { color: colors.text }]}>
             When did your last period start?
           </Typography>
+
+          {/* Quick date chip row */}
           <View style={styles.quickDates}>
             {quickDates.map((q) => {
               const d = format(subDays(new Date(), q.days), 'yyyy-MM-dd');
               const isSelected = lastPeriod === d;
               return (
-                <Button
+                <TouchableOpacity
                   key={q.label}
-                  label={q.label}
                   onPress={() => handleQuickDate(q.days)}
-                  variant={isSelected ? 'primary' : 'outline'}
-                  size="sm"
-                  style={{ flex: 1 }}
-                />
+                  activeOpacity={0.7}
+                  style={[
+                    styles.chipButton,
+                    {
+                      backgroundColor: isSelected ? colors.text : colors.surfaceSecondary,
+                    },
+                  ]}
+                >
+                  <Typography
+                    style={[
+                      styles.chipText,
+                      { color: isSelected ? colors.background : colors.textSecondary },
+                    ]}
+                  >
+                    {q.label}
+                  </Typography>
+                </TouchableOpacity>
               );
             })}
           </View>
 
-          {/* Date picker tap target */}
-          <View style={styles.datePickerContainer}>
-            <Typography variant="label" color={colors.textSecondary} style={styles.dateLabel}>
-              Or pick a date
+          {/* Specific date picker tap target */}
+          <TouchableOpacity
+            onPress={() => setShowDatePicker(true)}
+            activeOpacity={0.7}
+            style={[styles.dateCard, { backgroundColor: colors.surfaceSecondary }]}
+          >
+            <Typography style={[styles.dateCardLabel, { color: colors.textSecondary }]}>
+              Or pick a specific date
             </Typography>
-            <TouchableOpacity
-              onPress={() => setShowDatePicker(true)}
+            <Typography
               style={[
-                styles.datePicker,
-                {
-                  backgroundColor: colors.surfaceSecondary,
-                  borderColor: lastPeriod ? colors.accent : colors.border,
-                  borderWidth: lastPeriod ? 1.5 : 1.5,
-                },
+                styles.dateCardValue,
+                { color: lastPeriod ? colors.text : colors.textTertiary },
               ]}
-              activeOpacity={0.7}
             >
-              <Typography
-                style={[
-                  styles.dateText,
-                  { color: lastPeriod ? colors.text : colors.textTertiary, fontSize: FontSize.base },
-                ]}
-              >
-                {displayDate}
-              </Typography>
-              <Typography style={styles.calendarIcon}>📆</Typography>
-            </TouchableOpacity>
-          </View>
+              {displayDate}
+            </Typography>
+          </TouchableOpacity>
 
           {/* iOS date picker in modal */}
           {Platform.OS === 'ios' && (
-            <Modal
-              visible={showDatePicker}
-              transparent
-              animationType="slide"
-            >
+            <Modal visible={showDatePicker} transparent animationType="slide">
               <View style={styles.modalOverlay}>
                 <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
                   <View style={styles.modalHeader}>
@@ -221,28 +269,102 @@ export default function CycleInfoScreen() {
             />
           )}
 
-          <Input
-            label="Average cycle length (days)"
-            value={cycleLength}
-            onChangeText={setCycleLength}
-            keyboardType="numeric"
-            placeholder="28"
-            containerStyle={{ marginBottom: Spacing.sm, width: '100%' }}
-          />
-          <View style={[styles.hint, { backgroundColor: colors.surfaceSecondary }]}>
-            <Typography variant="caption" color={colors.textTertiary}>
-              The number of days from the first day of your period to the day before your next period. Most cycles are 21–35 days.
+          {/* Cycle length stepper */}
+          <View
+            style={[
+              styles.stepperCard,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Typography style={[styles.stepperLabel, { color: colors.textSecondary }]}>
+              CYCLE LENGTH
             </Typography>
+            <View style={styles.stepperRow}>
+              <TouchableOpacity
+                onPress={handleCycleDecrement}
+                activeOpacity={0.7}
+                style={[styles.stepperButtonMinus, { backgroundColor: colors.surfaceSecondary }]}
+              >
+                <Typography style={styles.stepperButtonTextMinus}>−</Typography>
+              </TouchableOpacity>
+              <View style={styles.stepperCenter}>
+                <Typography style={[styles.stepperNumber, { color: colors.text }]}>
+                  {cycleLengthNum}
+                </Typography>
+                <Typography style={[styles.stepperUnit, { color: colors.textSecondary }]}>
+                  DAYS
+                </Typography>
+              </View>
+              <TouchableOpacity
+                onPress={handleCycleIncrement}
+                activeOpacity={0.7}
+                style={[styles.stepperButtonPlus, { backgroundColor: colors.text }]}
+              >
+                <Typography style={[styles.stepperButtonTextPlus, { color: colors.background }]}>
+                  +
+                </Typography>
+              </TouchableOpacity>
+            </View>
           </View>
 
-          <Input
-            label="Average period length (days)"
-            value={periodLength}
-            onChangeText={setPeriodLength}
-            keyboardType="numeric"
-            placeholder="5"
-            containerStyle={{ marginTop: Spacing.md, marginBottom: Spacing.md, width: '100%' }}
-          />
+          {/* Period length stepper */}
+          <View
+            style={[
+              styles.stepperCard,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Typography style={[styles.stepperLabel, { color: colors.textSecondary }]}>
+              PERIOD LENGTH
+            </Typography>
+            <View style={styles.stepperRow}>
+              <TouchableOpacity
+                onPress={handlePeriodDecrement}
+                activeOpacity={0.7}
+                style={[styles.stepperButtonMinus, { backgroundColor: colors.surfaceSecondary }]}
+              >
+                <Typography style={styles.stepperButtonTextMinus}>−</Typography>
+              </TouchableOpacity>
+              <View style={styles.stepperCenter}>
+                <Typography style={[styles.stepperNumber, { color: colors.text }]}>
+                  {periodLengthNum}
+                </Typography>
+                <Typography style={[styles.stepperUnit, { color: colors.textSecondary }]}>
+                  DAYS
+                </Typography>
+              </View>
+              <TouchableOpacity
+                onPress={handlePeriodIncrement}
+                activeOpacity={0.7}
+                style={[styles.stepperButtonPlus, { backgroundColor: colors.text }]}
+              >
+                <Typography style={[styles.stepperButtonTextPlus, { color: colors.background }]}>
+                  +
+                </Typography>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Info box */}
+          <View
+            style={[
+              styles.infoBox,
+              { backgroundColor: colors.accent + '18' },
+            ]}
+          >
+            <Sparkles size={14} color={colors.accent} style={{ marginTop: 1 }} />
+            <Typography
+              style={[styles.infoText, { color: colors.textSecondary }]}
+            >
+              Most cycles are 21–35 days. We'll refine predictions as you log more.
+            </Typography>
+          </View>
 
           {error ? (
             <Typography variant="caption" color={Colors.error} style={{ marginBottom: Spacing.sm }}>
@@ -261,65 +383,194 @@ export default function CycleInfoScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+
+  // OnbHeader
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 12,
+    gap: 10,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progressBarTrack: {
+    height: 3,
+    borderRadius: 4,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  progressBarFill: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 4,
+  },
+  progressBarFillActive: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    borderRadius: 4,
+  },
+  stepCounter: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    alignSelf: 'flex-end',
+  },
+
   content: {
     paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.lg,
+    paddingTop: Spacing.sm,
     paddingBottom: Spacing.lg,
     flexGrow: 1,
   },
-  iconContainer: {
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-    marginTop: Spacing.sm,
-  },
-  emoji: {
-    fontSize: 52,
-    textAlign: 'center',
-    lineHeight: 64,
-  },
-  sectionLabel: {
+
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
     marginBottom: 10,
-    alignSelf: 'flex-start',
   },
+  title: {
+    fontSize: 26,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 13.5,
+    lineHeight: 20,
+    marginBottom: Spacing.xl,
+  },
+
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 10,
+  },
+
   quickDates: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
     gap: 8,
-    width: '100%',
     marginBottom: Spacing.md,
   },
-  datePickerContainer: {
-    width: '100%',
+  chipButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  dateCard: {
+    borderRadius: 12,
+    padding: 14,
     marginBottom: Spacing.md,
   },
-  dateLabel: {
-    marginBottom: 6,
+  dateCardLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
   },
-  datePicker: {
+  dateCardValue: {
+    fontSize: 15,
+  },
+
+  stepperCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 12,
+  },
+  stepperLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 12,
+  },
+  stepperRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: Radius.lg,
-    height: 50,
-    paddingHorizontal: Spacing.md,
   },
-  dateText: {
-    flex: 1,
+  stepperButtonMinus: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  calendarIcon: {
-    fontSize: 18,
+  stepperButtonTextMinus: {
+    fontSize: 22,
+    fontWeight: '300',
+    lineHeight: 26,
+    textAlign: 'center',
   },
-  hint: {
-    padding: Spacing.sm,
-    borderRadius: Radius.md,
-    width: '100%',
+  stepperCenter: {
+    alignItems: 'center',
+  },
+  stepperNumber: {
+    fontSize: 48,
+    fontWeight: '700',
+    letterSpacing: -1.5,
+    lineHeight: 54,
+  },
+  stepperUnit: {
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: -2,
+  },
+  stepperButtonPlus: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepperButtonTextPlus: {
+    fontSize: 22,
+    fontWeight: '300',
+    lineHeight: 26,
+    textAlign: 'center',
+  },
+
+  infoBox: {
+    borderRadius: 10,
+    padding: 12,
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-start',
+    marginTop: 4,
     marginBottom: Spacing.sm,
   },
+  infoText: {
+    fontSize: 11.5,
+    fontStyle: 'italic',
+    lineHeight: 17,
+    flex: 1,
+  },
+
   footer: {
     paddingHorizontal: Spacing.xl,
     paddingBottom: Spacing.xl,
     paddingTop: Spacing.sm,
   },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: Colors.overlay,

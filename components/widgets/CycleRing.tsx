@@ -6,7 +6,7 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Stop, Line } from 'react-native-svg';
 import { Typography } from '../ui/Typography';
 import { useColors } from '../../hooks/useTheme';
 import { Colors } from '../../constants/colors';
@@ -22,13 +22,6 @@ interface CycleRingProps {
   size?: number;
 }
 
-const PHASE_LABELS: Record<CyclePhase, string> = {
-  menstrual:  'Menstrual',
-  follicular: 'Follicular',
-  ovulation:  'Ovulation',
-  luteal:     'Luteal',
-};
-
 // Phase start as fraction of cycle (approx 28-day defaults)
 const PHASE_START_FRACS: Record<CyclePhase, number> = {
   menstrual:  0,
@@ -40,6 +33,19 @@ const PHASE_START_FRACS: Record<CyclePhase, number> = {
 function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
   const rad = ((angleDeg - 90) * Math.PI) / 180;
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+/** Returns strokeDasharray and strokeDashoffset to draw a partial arc */
+function arcDash(circumference: number, startFrac: number, endFrac: number) {
+  const spanFrac = endFrac - startFrac;
+  const dashLength = circumference * spanFrac;
+  const gapLength = circumference - dashLength;
+  // offset so the arc starts at startFrac (SVG starts at 12 o'clock after rotate(-90))
+  const offset = circumference * (1 - startFrac) - circumference;
+  // simpler: dashoffset = circumference - (circumference * startFrac)
+  // We rotate the SVG by -90 already on the progress arc; for phase arcs we apply transform too
+  const dashOffset = circumference * (1 - startFrac);
+  return { dashArray: `${dashLength} ${gapLength}`, dashOffset };
 }
 
 export function CycleRing({
@@ -89,6 +95,33 @@ export function CycleRing({
     }
   );
 
+  // ── Phase arc segments ─────────────────────────────────────────────────
+  // Define phase spans as fractions of a full cycle
+  const phaseArcs: Array<{ phase: CyclePhase; startFrac: number; endFrac: number }> = [
+    { phase: 'menstrual',  startFrac: 0 / 28,  endFrac: 5 / 28 },
+    { phase: 'follicular', startFrac: 5 / 28,  endFrac: 13 / 28 },
+    { phase: 'ovulation',  startFrac: 13 / 28, endFrac: 15 / 28 },
+    { phase: 'luteal',     startFrac: 15 / 28, endFrac: 28 / 28 },
+  ];
+
+  // ── Tick marks ────────────────────────────────────────────────────────
+  const showTicks = cycleLength >= 20 && cycleLength <= 35;
+  const TICK_INNER = radius - 2;
+  const TICK_OUTER = radius + 4;
+  const ticks: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
+  if (showTicks) {
+    for (let i = 0; i < cycleLength; i++) {
+      const angleDeg = (i / cycleLength) * 360;
+      const inner = polarToCartesian(center, center, TICK_INNER, angleDeg);
+      const outer = polarToCartesian(center, center, TICK_OUTER, angleDeg);
+      ticks.push({ x1: inner.x, y1: inner.y, x2: outer.x, y2: outer.y });
+    }
+  }
+
+  // ── Center label logic ────────────────────────────────────────────────
+  const isOverdue = daysUntilPeriod < 0;
+  const isToday   = daysUntilPeriod === 0;
+
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={size} height={size}>
@@ -99,16 +132,26 @@ export function CycleRing({
           </LinearGradient>
         </Defs>
 
-        {/* Background track — very subtle */}
-        <Circle
-          cx={center}
-          cy={center}
-          r={radius}
-          fill="none"
-          stroke={colorA}
-          strokeWidth={SW}
-          opacity={0.1}
-        />
+        {/* Phase arc segments on background track (20% opacity) */}
+        {phaseArcs.map(({ phase: p, startFrac, endFrac }) => {
+          const { dashArray, dashOffset } = arcDash(circumference, startFrac, endFrac);
+          return (
+            <Circle
+              key={p}
+              cx={center}
+              cy={center}
+              r={radius}
+              fill="none"
+              stroke={Colors.phases[p]}
+              strokeWidth={SW}
+              strokeDasharray={dashArray}
+              strokeDashoffset={dashOffset}
+              strokeLinecap="butt"
+              opacity={0.22}
+              transform={`rotate(-90 ${center} ${center})`}
+            />
+          );
+        })}
 
         {/* Outer accent ring */}
         <Circle
@@ -120,6 +163,20 @@ export function CycleRing({
           strokeWidth={1.5}
           opacity={0.2}
         />
+
+        {/* Tick marks at each cycle day */}
+        {showTicks && ticks.map((t, i) => (
+          <Line
+            key={i}
+            x1={t.x1}
+            y1={t.y1}
+            x2={t.x2}
+            y2={t.y2}
+            stroke={colors.border}
+            strokeWidth={1}
+            opacity={0.4}
+          />
+        ))}
 
         {/* Phase boundary markers */}
         {phaseMarkers.map(({ phase: p, x, y, color, isActive }) => (
@@ -169,52 +226,53 @@ export function CycleRing({
         <Circle cx={tip.x} cy={tip.y} r={4} fill={Colors.white} />
       </Svg>
 
-      {/* Center content */}
+      {/* Center content — redesigned */}
       <View style={[StyleSheet.absoluteFillObject, styles.center]}>
+        {/* Top label */}
         <Typography
           variant="caption"
           color={colors.textTertiary}
           align="center"
-          style={styles.dayLabel}
+          style={styles.topLabel}
         >
-          DAY
+          PERIOD IN
         </Typography>
-        <Typography
-          align="center"
-          color={colorA}
-          style={styles.dayNumber}
-        >
-          {currentDay}
-        </Typography>
-        <Typography
-          variant="caption"
-          color={colors.textTertiary}
-          align="center"
-          style={styles.ofLabel}
-        >
-          of {cycleLength}
-        </Typography>
-        <View style={[styles.phaseBadge, { backgroundColor: colorA + '22' }]}>
+
+        {/* Big countdown number or status text */}
+        {isOverdue ? (
           <Typography
-            variant="caption"
-            color={colorA}
             align="center"
-            style={styles.phaseLabel}
+            color={Colors.error}
+            style={styles.bigNumber}
           >
-            {PHASE_LABELS[phase]}
+            {'!'}
           </Typography>
-        </View>
+        ) : isToday ? (
+          <Typography
+            align="center"
+            color={colorA}
+            style={[styles.bigNumber, { fontSize: 40 }]}
+          >
+            Today
+          </Typography>
+        ) : (
+          <Typography
+            align="center"
+            color={colorA}
+            style={styles.bigNumber}
+          >
+            {daysUntilPeriod}
+          </Typography>
+        )}
+
+        {/* Bottom caption */}
         <Typography
           variant="caption"
           color={colors.textTertiary}
           align="center"
-          style={styles.periodLabel}
+          style={styles.bottomCaption}
         >
-          {daysUntilPeriod > 0
-            ? `Period in ${daysUntilPeriod}d`
-            : daysUntilPeriod === 0
-            ? 'Period today'
-            : 'Period expected'}
+          {`Day ${currentDay} of ${cycleLength}`}
         </Typography>
       </View>
     </View>
@@ -226,33 +284,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dayLabel: {
+  topLabel: {
     fontSize: 10,
-    letterSpacing: 2.5,
+    letterSpacing: 2,
     fontWeight: '600',
+    textTransform: 'uppercase',
+    marginBottom: 4,
   },
-  dayNumber: {
-    fontSize: 52,
+  bigNumber: {
+    fontSize: 56,
     fontWeight: '800',
-    lineHeight: 58,
+    lineHeight: 64,
   },
-  ofLabel: {
+  bottomCaption: {
     fontSize: 11,
-    marginTop: -2,
-  },
-  phaseBadge: {
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    borderRadius: 20,
-    marginTop: 8,
-  },
-  phaseLabel: {
-    fontWeight: '700',
-    fontSize: 11,
-    letterSpacing: 0.5,
-  },
-  periodLabel: {
-    fontSize: 11,
-    marginTop: 6,
+    marginTop: 4,
+    letterSpacing: 0.3,
   },
 });

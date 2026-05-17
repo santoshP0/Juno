@@ -5,9 +5,11 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ChevronLeft } from 'lucide-react-native';
 import { Typography } from '../../components/ui/Typography';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
@@ -51,6 +53,34 @@ export default function InfoScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Header */}
+      <View style={styles.headerRow}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+          style={[styles.backButton, { backgroundColor: colors.surfaceSecondary }]}
+        >
+          <ChevronLeft size={18} color={colors.text} />
+        </TouchableOpacity>
+        <View style={styles.stepCounter}>
+          <Typography
+            style={[styles.stepText, { color: colors.textSecondary }]}
+          >
+            1 of 5
+          </Typography>
+        </View>
+      </View>
+
+      {/* Progress bar */}
+      <View style={[styles.progressTrack, { backgroundColor: colors.surfaceSecondary }]}>
+        <View
+          style={[
+            styles.progressFill,
+            { backgroundColor: colors.accent, width: `${(1 / 5) * 100}%` },
+          ]}
+        />
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
@@ -60,18 +90,13 @@ export default function InfoScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.iconContainer}>
-            <Typography style={styles.emoji}>🌸</Typography>
-          </View>
-          <Typography variant="h2" align="center" style={styles.title}>
-            Tell us a bit about you
+          <Typography style={[styles.eyebrow, { color: colors.accent }]}>
+            About you
           </Typography>
-          <Typography
-            variant="body2"
-            align="center"
-            color={colors.textSecondary}
-            style={styles.subtitle}
-          >
+          <Typography style={[styles.title, { color: colors.text }]}>
+            Tell us about you
+          </Typography>
+          <Typography style={[styles.subtitle, { color: colors.textSecondary }]}>
             This stays on your device and helps personalize your experience.
           </Typography>
 
@@ -118,27 +143,67 @@ export default function InfoScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+
+  // Header
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepCounter: {
+    alignItems: 'flex-end',
+  },
+  stepText: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
+  },
+
+  // Progress bar
+  progressTrack: {
+    height: 3,
+    marginHorizontal: 20,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+
+  // Content
   content: {
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.lg,
     flexGrow: 1,
   },
-  iconContainer: {
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-    marginTop: Spacing.sm,
-  },
-  emoji: {
-    fontSize: 52,
-    textAlign: 'center',
-    lineHeight: 64,
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 8,
   },
   title: {
-    marginBottom: Spacing.sm,
+    fontSize: 26,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+    marginBottom: 6,
   },
   subtitle: {
-    marginBottom: Spacing.xl,
+    fontSize: 13.5,
+    lineHeight: 20,
+    marginBottom: 24,
   },
   input: {
     marginBottom: Spacing.md,
@@ -148,6 +213,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: Spacing.sm,
   },
+
+  // Footer
   footer: {
     paddingHorizontal: Spacing.xl,
     paddingBottom: Spacing.xl,

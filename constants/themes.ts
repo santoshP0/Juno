@@ -1,4 +1,25 @@
 export const ACCENT_THEMES = {
+  warm: {
+    label: 'Warm',
+    emoji: '🌿',
+    primary: '#C2847A',
+    primaryLight: '#D49B91',
+    primaryDark: '#A06760',
+    // Light — warm cream tones matching design
+    bgLight: '#FBF7F4',
+    surfaceSecondaryLight: '#F4EEE9',
+    borderLight: '#EDE3DC',
+    tabBarInactiveLight: '#A89C95',
+    textSecondaryLight: '#7A6E68',
+    textTertiaryLight: '#A89C95',
+    // Dark — warm dark tones
+    surfaceDark: '#1E1916',
+    surfaceSecondaryDark: '#272019',
+    borderDark: '#2E2620',
+    tabBarInactiveDark: '#6F635D',
+    textSecondaryDark: '#A89C95',
+    textTertiaryDark: '#6F635D',
+  },
   rose: {
     label: 'Rose',
     emoji: '🌸',

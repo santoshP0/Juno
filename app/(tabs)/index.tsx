@@ -8,10 +8,11 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Droplets, Smile, FileText, Settings } from 'lucide-react-native';
+import { Droplets, Smile, FileText, Settings, Sparkles, Egg, ChevronRight } from 'lucide-react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import Svg, { Polyline } from 'react-native-svg';
 
 import { CycleRing } from '../../components/widgets/CycleRing';
 import { PhaseCard } from '../../components/widgets/PhaseCard';
@@ -49,14 +50,58 @@ const PREGNANCY_CHANCE_COLOR: Record<string, string> = {
   very_high: Colors.success,
 };
 
+const PREGNANCY_CHANCE_SEGMENTS: Record<string, number> = {
+  very_low: 1,
+  low: 2,
+  medium: 3,
+  high: 4,
+  very_high: 5,
+};
+
+const PREGNANCY_CHANCE_LABELS = ['Very low', 'Low', 'Med', 'High', 'V. high'];
+
+// Dummy sparkline data per stat
+const SPARKLINE_CYCLE_DAY = [8, 12, 16, 19, 14, 19, 19];
+const SPARKLINE_AVG_LENGTH = [28, 29, 27, 28, 28, 29, 28];
+const SPARKLINE_PERIOD_IN  = [14, 10, 12, 9, 11, 10, 9];
+
+function Sparkline({ data, color }: { data: number[]; color: string }) {
+  const W = 56;
+  const H = 12;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const pts = data
+    .map((v, i) => {
+      const x = (i / (data.length - 1)) * W;
+      const y = H - ((v - min) / range) * H;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
+  return (
+    <Svg width={W} height={H} style={{ marginTop: 6 }}>
+      <Polyline
+        points={pts}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.2}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
 function MiniStat({
   label,
   value,
   color,
+  sparklineData,
 }: {
   label: string;
   value: string;
   color: string;
+  sparklineData: number[];
 }) {
   const colors = useColors();
   return (
@@ -77,6 +122,7 @@ function MiniStat({
       >
         {value}
       </Typography>
+      <Sparkline data={sparklineData} color={color} />
     </View>
   );
 }
@@ -86,13 +132,38 @@ function QuickLogButton({
   label,
   color,
   onPress,
+  primary,
 }: {
   icon: typeof Droplets;
   label: string;
   color: string;
   onPress: () => void;
+  primary?: boolean;
 }) {
   const colors = useColors();
+
+  if (primary) {
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.8}
+        style={[styles.quickBtn, { backgroundColor: colors.text, borderColor: 'transparent' }]}
+      >
+        <View style={[styles.quickBtnIcon, { backgroundColor: 'rgba(255,255,255,0.12)' }]}>
+          <Icon color={colors.background} size={22} strokeWidth={2} />
+        </View>
+        <Typography
+          variant="caption"
+          color={colors.background}
+          align="center"
+          style={{ marginTop: 6, fontWeight: '600' }}
+        >
+          {label}
+        </Typography>
+      </TouchableOpacity>
+    );
+  }
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -115,12 +186,12 @@ function QuickLogButton({
 }
 
 function UpcomingCard({
-  emoji,
+  Icon,
   label,
   dateStr,
   color,
 }: {
-  emoji: string;
+  Icon: typeof Droplets;
   label: string;
   dateStr: string;
   color: string;
@@ -128,7 +199,9 @@ function UpcomingCard({
   const colors = useColors();
   return (
     <View style={[styles.upcomingCard, { backgroundColor: color + '12', borderColor: color + '30' }]}>
-      <Typography style={{ fontSize: 22 }}>{emoji}</Typography>
+      <View style={[styles.upcomingIconBox, { backgroundColor: color + '28' }]}>
+        <Icon color={color} size={16} strokeWidth={2} />
+      </View>
       <Typography
         variant="caption"
         color={colors.textTertiary}
@@ -268,11 +341,13 @@ export default function HomeScreen() {
                 label="Cycle day"
                 value={`${prediction.currentCycleDay}`}
                 color={phaseColor}
+                sparklineData={SPARKLINE_CYCLE_DAY}
               />
               <MiniStat
                 label="Avg length"
                 value={`${prediction.avgCycleLength}d`}
                 color={Colors.sage}
+                sparklineData={SPARKLINE_AVG_LENGTH}
               />
               <MiniStat
                 label="Period in"
@@ -284,6 +359,7 @@ export default function HomeScreen() {
                     : 'Overdue'
                 }
                 color={prediction.daysUntilNextPeriod < 0 ? Colors.error : Colors.gold}
+                sparklineData={SPARKLINE_PERIOD_IN}
               />
             </Animated.View>
 
@@ -293,28 +369,33 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   activeOpacity={0.85}
                   onPress={() => {
-                    // Log period as of the expected start date (not today)
                     const expectedStart = format(
                       subDays(new Date(), Math.abs(prediction.daysUntilNextPeriod)),
                       'yyyy-MM-dd'
                     );
                     router.push(`/log/${expectedStart}`);
                   }}
-                  style={[styles.overdueBanner, { backgroundColor: Colors.error + '12', borderColor: Colors.error + '35' }]}
+                  style={[styles.overdueBanner, {
+                    backgroundColor: '#E8A598' + '15',
+                    borderColor: '#E8A598' + '50',
+                    borderRadius: 20,
+                    borderWidth: 1,
+                  }]}
                 >
-                  <Typography style={{ fontSize: 22 }}>🩸</Typography>
-                  <View style={{ flex: 1 }}>
-                    <Typography variant="label" color={Colors.error} style={{ fontWeight: '700' }}>
+                  {/* Droplet icon box */}
+                  <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#E8A598' + '30', alignItems: 'center', justifyContent: 'center' }}>
+                    <Droplets size={20} color='#E8A598' />
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Typography style={{ fontSize: 15, fontWeight: '700', color: '#C2847A' }}>
                       Period {Math.abs(prediction.daysUntilNextPeriod)} days late
                     </Typography>
-                    <Typography variant="caption" color={colors.textSecondary} style={{ marginTop: 2 }}>
-                      Did it arrive? Tap to log — this is completely normal.
+                    <Typography style={{ fontSize: 12, lineHeight: 17 }} color={colors.textSecondary}>
+                      Did it start? Tap to log — completely normal.
                     </Typography>
                   </View>
-                  <View style={[styles.overdueLogBtn, { backgroundColor: Colors.error + '20', borderColor: Colors.error + '40' }]}>
-                    <Typography variant="caption" color={Colors.error} style={{ fontWeight: '700' }}>
-                      Log
-                    </Typography>
+                  <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#E8A598' + '30', alignItems: 'center', justifyContent: 'center' }}>
+                    <ChevronRight size={16} color='#C2847A' />
                   </View>
                 </TouchableOpacity>
               </Animated.View>
@@ -333,16 +414,33 @@ export default function HomeScreen() {
                     <Typography variant="body2" color={colors.textSecondary}>
                       Pregnancy chance today
                     </Typography>
-                    <View style={[styles.chanceBarContainer, { backgroundColor: colors.surfaceSecondary }]}>
-                      <View 
-                        style={[
-                          styles.chanceBarFill, 
-                          { 
-                            width: `${prediction.pregnancyChanceScore * 100}%`,
-                            backgroundColor: PREGNANCY_CHANCE_COLOR[prediction.pregnancyChance] ?? Colors.sage
-                          }
-                        ]} 
-                      />
+                    {/* 5-segment pill strip */}
+                    <View style={styles.chanceSegmentsRow}>
+                      {Array.from({ length: 5 }, (_, i) => {
+                        const activeCount = PREGNANCY_CHANCE_SEGMENTS[prediction.pregnancyChance] ?? 1;
+                        const segColor = PREGNANCY_CHANCE_COLOR[prediction.pregnancyChance] ?? Colors.sage;
+                        const isActive = i < activeCount;
+                        return (
+                          <View
+                            key={i}
+                            style={[
+                              styles.chanceSegment,
+                              { backgroundColor: isActive ? segColor : colors.surfaceSecondary },
+                            ]}
+                          />
+                        );
+                      })}
+                    </View>
+                    {/* Labels below segments */}
+                    <View style={styles.chanceSegmentLabelsRow}>
+                      {PREGNANCY_CHANCE_LABELS.map((lbl) => (
+                        <Typography
+                          key={lbl}
+                          style={[styles.chanceSegmentLabel, { color: colors.textTertiary }]}
+                        >
+                          {lbl}
+                        </Typography>
+                      ))}
                     </View>
                   </View>
                   <View
@@ -377,19 +475,19 @@ export default function HomeScreen() {
                 </Typography>
                 <View style={styles.upcomingRow}>
                   <UpcomingCard
-                    emoji="🩸"
+                    Icon={Droplets}
                     label="Period"
                     dateStr={formatDate(prediction.nextPeriodStart, 'MMM d')}
                     color={colors.accent}
                   />
                   <UpcomingCard
-                    emoji="🌿"
+                    Icon={Sparkles}
                     label="Fertile"
                     dateStr={formatDate(prediction.fertileWindowStart, 'MMM d')}
                     color={Colors.success}
                   />
                   <UpcomingCard
-                    emoji="✨"
+                    Icon={Egg}
                     label="Ovulation"
                     dateStr={formatDate(prediction.ovulationDay, 'MMM d')}
                     color={Colors.sage}
@@ -412,11 +510,11 @@ export default function HomeScreen() {
         <Animated.View entering={FadeInDown.delay(400).duration(500)}>
           <Card padding={16} style={styles.sectionCard}>
             <Typography
-              variant="label"
-              color={colors.textSecondary}
-              style={{ marginBottom: 14, fontWeight: '600' }}
+              variant="caption"
+              color={colors.textTertiary}
+              style={styles.quickLogSectionLabel}
             >
-              Quick log
+              QUICK LOG · TODAY
             </Typography>
             <View style={styles.quickButtons}>
               <QuickLogButton
@@ -436,6 +534,7 @@ export default function HomeScreen() {
                 label="Log day"
                 color={Colors.gold}
                 onPress={handleQuickLog}
+                primary
               />
             </View>
           </Card>
@@ -527,10 +626,8 @@ const styles = StyleSheet.create({
   overdueBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
     padding: 14,
-    borderRadius: Radius.xl,
-    borderWidth: 1,
+    gap: 12,
   },
   overdueLogBtn: {
     paddingHorizontal: 14,
@@ -546,16 +643,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  chanceBarContainer: {
-    height: 6,
-    borderRadius: 3,
+  chanceSegmentsRow: {
+    flexDirection: 'row',
+    gap: 4,
     marginTop: 8,
-    width: '100%',
-    overflow: 'hidden',
   },
-  chanceBarFill: {
-    height: '100%',
+  chanceSegment: {
+    flex: 1,
+    height: 5,
     borderRadius: 3,
+  },
+  chanceSegmentLabelsRow: {
+    flexDirection: 'row',
+    marginTop: 4,
+  },
+  chanceSegmentLabel: {
+    flex: 1,
+    fontSize: 9,
+    textAlign: 'center',
   },
   chanceBadge: {
     paddingHorizontal: 12,
@@ -582,6 +687,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: Radius.xl,
     borderWidth: 1,
+  },
+  upcomingIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickLogSectionLabel: {
+    fontSize: 10,
+    letterSpacing: 2,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    marginBottom: 14,
   },
   quickButtons: {
     flexDirection: 'row',

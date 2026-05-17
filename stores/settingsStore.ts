@@ -20,7 +20,7 @@ const DEFAULT_NOTIFICATIONS: NotificationSettings = {
 
 const DEFAULT_SETTINGS: AppSettings = {
   theme: 'auto',
-  accentTheme: 'rose',
+  accentTheme: 'warm',
   weightUnit: 'kg',
   heightUnit: 'cm',
   tempUnit: 'celsius',

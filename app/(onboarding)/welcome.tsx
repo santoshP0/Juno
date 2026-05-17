@@ -1,173 +1,197 @@
-import React, { useRef, useState } from 'react';
-import {
-  View,
-  FlatList,
-  Dimensions,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
+import React from 'react';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Svg, Ellipse, Circle, Text as SvgText } from 'react-native-svg';
 import { Typography } from '../../components/ui/Typography';
-import { Button } from '../../components/ui/Button';
 import { useColors } from '../../hooks/useTheme';
-import { Colors } from '../../constants/colors';
-import { Spacing } from '../../constants/theme';
 
-const { width } = Dimensions.get('window');
+const PHASE_COLORS = {
+  menstrual: '#E8A598',
+  follicular: '#98C4B0',
+  ovulation: '#F5C37A',
+  luteal: '#B8A5C8',
+};
 
-const SLIDES = [
-  {
-    emoji: '🌙',
-    title: 'Welcome to Juno',
-    subtitle: 'Your calm, private companion for understanding your body and cycle.',
-    bg: Colors.dustyRoseLight,
-  },
-  {
-    emoji: '🔒',
-    title: '100% Private',
-    subtitle: 'Your data never leaves your phone. No accounts, no servers, no tracking. Ever.',
-    bg: Colors.sageLight,
-  },
-  {
-    emoji: '📅',
-    title: 'Track Everything',
-    subtitle: 'Log your flow, symptoms, mood, sleep, and more — all in one place.',
-    bg: Colors.cream,
-  },
-  {
-    emoji: '✨',
-    title: 'Understand Your Body',
-    subtitle: 'Predictions, insights, and personalized content based on your unique cycle.',
-    bg: Colors.goldLight,
-  },
-  {
-    emoji: '💌',
-    title: 'Built for you',
-    subtitle: "Juno is built by one person who genuinely cares. Have feedback or a feature idea? Reach out anytime from Settings — every message is read.",
-    bg: Colors.dustyRoseLight,
-  },
-];
+function PetalMotif() {
+  const colors = useColors();
+  return (
+    <Svg width={160} height={160} viewBox="0 0 160 160">
+      <Ellipse
+        cx={80}
+        cy={44}
+        rx={22}
+        ry={44}
+        fill={PHASE_COLORS.menstrual}
+        opacity={0.65}
+        rotation={-90}
+        originX={80}
+        originY={80}
+      />
+      <Ellipse
+        cx={80}
+        cy={44}
+        rx={22}
+        ry={44}
+        fill={PHASE_COLORS.follicular}
+        opacity={0.65}
+        rotation={0}
+        originX={80}
+        originY={80}
+      />
+      <Ellipse
+        cx={80}
+        cy={44}
+        rx={22}
+        ry={44}
+        fill={PHASE_COLORS.ovulation}
+        opacity={0.65}
+        rotation={90}
+        originX={80}
+        originY={80}
+      />
+      <Ellipse
+        cx={80}
+        cy={44}
+        rx={22}
+        ry={44}
+        fill={PHASE_COLORS.luteal}
+        opacity={0.65}
+        rotation={180}
+        originX={80}
+        originY={80}
+      />
+      <Circle cx={80} cy={80} r={22} fill={colors.surface} />
+      <SvgText
+        x={80}
+        y={87}
+        textAnchor="middle"
+        fontSize={24}
+        fontStyle="italic"
+        fill={colors.accent}
+      >
+        J
+      </SvgText>
+    </Svg>
+  );
+}
 
 export default function WelcomeScreen() {
   const router = useRouter();
   const colors = useColors();
-  const [activeIndex, setActiveIndex] = useState(0);
-  const flatRef = useRef<FlatList>(null);
 
-  const handleNext = () => {
-    if (activeIndex < SLIDES.length - 1) {
-      flatRef.current?.scrollToIndex({ index: activeIndex + 1 });
-    } else {
-      router.push('/(onboarding)/info');
-    }
+  const handleBegin = () => {
+    router.push('/(onboarding)/info');
   };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <FlatList
-        ref={flatRef}
-        data={SLIDES}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={(_, i) => String(i)}
-        onMomentumScrollEnd={(e) => {
-          const index = Math.round(e.nativeEvent.contentOffset.x / width);
-          setActiveIndex(index);
-        }}
-        renderItem={({ item, index }) => (
-          <Animated.View entering={FadeIn} style={[styles.slide, { width }]}>
-            <View style={[styles.emojiCircle, { backgroundColor: index === 0 ? colors.accentLight : item.bg }]}>
-              <Typography style={styles.emoji}>{item.emoji}</Typography>
-            </View>
-            <Typography variant="h2" align="center" style={{ marginTop: Spacing.xl }}>
-              {item.title}
-            </Typography>
-            <Typography
-              variant="body"
-              align="center"
-              color={colors.textSecondary}
-              style={{ marginTop: Spacing.md, paddingHorizontal: Spacing['2xl'] }}
-            >
-              {item.subtitle}
-            </Typography>
-          </Animated.View>
-        )}
-      />
+      {/* Top spacer */}
+      <View style={styles.spacer} />
 
-      <View style={styles.footer}>
-        {/* Dots */}
-        <View style={styles.dots}>
-          {SLIDES.map((_, i) => (
-            <View
-              key={i}
-              style={[
-                styles.dot,
-                {
-                  backgroundColor:
-                    i === activeIndex ? colors.accent : colors.border,
-                  width: i === activeIndex ? 24 : 8,
-                },
-              ]}
-            />
-          ))}
-        </View>
-
-        <Button
-          label={activeIndex === SLIDES.length - 1 ? "Let's get started" : 'Next'}
-          onPress={handleNext}
-          fullWidth
-          size="lg"
-        />
-
-        <TouchableOpacity
-          onPress={() => router.push('/(onboarding)/info')}
-          style={styles.skip}
+      {/* Center content */}
+      <View style={styles.centerContent}>
+        <PetalMotif />
+        <Typography
+          style={[
+            styles.title,
+            { color: colors.text },
+          ]}
         >
-          <Typography variant="label" color={colors.textTertiary}>
-            Skip intro
+          Juno
+        </Typography>
+        <Typography
+          style={[
+            styles.tagline,
+            { color: colors.textSecondary },
+          ]}
+        >
+          Your cycle, on your terms. Private. Quiet. Yours.
+        </Typography>
+      </View>
+
+      {/* Bottom CTA area */}
+      <View style={[styles.ctaArea, { borderTopColor: colors.border }]}>
+        <TouchableOpacity
+          onPress={handleBegin}
+          style={[styles.primaryButton, { backgroundColor: colors.text }]}
+          activeOpacity={0.85}
+        >
+          <Typography style={[styles.primaryButtonText, { color: colors.background }]}>
+            Begin
           </Typography>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={handleBegin}
+          style={styles.ghostButton}
+          activeOpacity={0.7}
+        >
+          <Typography style={[styles.ghostButtonText, { color: colors.textSecondary }]}>
+            Restore from backup file
+          </Typography>
+        </TouchableOpacity>
+
+        <Typography style={[styles.footerText, { color: colors.textTertiary }]}>
+          No account. No sign-up. Your data lives on this phone.
+        </Typography>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  slide: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.xl,
+  container: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  spacer: {
     flex: 1,
   },
-  emojiCircle: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+  centerContent: {
+    flex: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emoji: { fontSize: 60, lineHeight: 72 },
-  footer: {
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.xl,
-    gap: Spacing.md,
+  title: {
+    fontSize: 44,
+    letterSpacing: -1,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginTop: 24,
   },
-  dots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    marginBottom: Spacing.sm,
+  tagline: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 21,
+    maxWidth: 260,
+    marginTop: 8,
   },
-  dot: {
-    height: 8,
-    borderRadius: 4,
+  ctaArea: {
+    paddingHorizontal: 20,
+    paddingBottom: 32,
+    gap: 10,
   },
-  skip: {
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
+  primaryButton: {
+    borderRadius: 14,
+    paddingVertical: 15,
+    paddingHorizontal: 16,
+  },
+  primaryButtonText: {
+    fontSize: 14.5,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  ghostButton: {
+    padding: 14,
+  },
+  ghostButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  footerText: {
+    fontSize: 10.5,
+    textAlign: 'center',
   },
 });

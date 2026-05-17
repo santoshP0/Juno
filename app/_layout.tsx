@@ -4,6 +4,7 @@ import { Stack, useRouter } from 'expo-router';
 import { SQLiteProvider, useSQLiteContext } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import { useFonts, InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif';
 import notifee, { EventType } from '@notifee/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -114,6 +115,10 @@ async function initDB(db: import('expo-sqlite').SQLiteDatabase) {
 export default function RootLayout() {
   const { isDark } = useTheme();
   const colors = useColors();
+  const [fontsLoaded] = useFonts({
+    InstrumentSerif_400Regular,
+    InstrumentSerif_400Regular_Italic,
+  });
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

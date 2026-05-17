@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, BellOff, Bell, CheckCircle, Plus, Trash2, Calendar as CalendarIcon } from 'lucide-react-native';
+import { ChevronLeft, BellOff, Bell, CheckCircle, Plus, Trash2, Calendar as CalendarIcon, Droplets, AlertTriangle, Sparkles, Star, FileText, Pill, Thermometer } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Calendar } from 'react-native-calendars';
 import { format, parseISO } from 'date-fns';
@@ -46,16 +46,26 @@ function SettingSwitch({
   value,
   onValueChange,
   disabled,
+  icon: IconComp,
+  iconColor,
 }: {
   label: string;
   subtitle?: string;
   value: boolean;
   onValueChange: (v: boolean) => void;
   disabled?: boolean;
+  icon?: typeof Bell;
+  iconColor?: string;
 }) {
   const colors = useColors();
+  const ic = iconColor ?? colors.accent;
   return (
     <View style={[s.switchRow, disabled && { opacity: 0.5 }]}>
+      {IconComp && (
+        <View style={[s.iconBox, { backgroundColor: ic + '22' }]}>
+          <IconComp size={16} color={ic} strokeWidth={2} />
+        </View>
+      )}
       <View style={{ flex: 1, paddingRight: 8 }}>
         <Typography variant="body">{label}</Typography>
         {subtitle && (
@@ -248,17 +258,16 @@ export default function NotificationsScreen() {
         </View>
 
         {/* Cycle reminders */}
+        <Typography style={s.sectionLabel} color={colors.textTertiary}>CYCLE ALERTS</Typography>
         <Card padding={16}>
-          <Typography variant="label" color={colors.textSecondary} style={s.cardTitle}>
-            Cycle reminders
-          </Typography>
-
           <SettingSwitch
             label="Period starting soon"
             subtitle="Remind me before my predicted period"
             value={settings.periodSoonEnabled}
             onValueChange={(v) => update({ periodSoonEnabled: v })}
             disabled={notifDisabled}
+            icon={Droplets}
+            iconColor="#FF5C8D"
           />
 
           {settings.periodSoonEnabled && (
@@ -296,6 +305,8 @@ export default function NotificationsScreen() {
             value={settings.periodLateEnabled}
             onValueChange={(v) => update({ periodLateEnabled: v })}
             disabled={notifDisabled}
+            icon={AlertTriangle}
+            iconColor={Colors.error}
           />
 
           <Divider />
@@ -305,6 +316,8 @@ export default function NotificationsScreen() {
             value={settings.fertileWindowEnabled}
             onValueChange={(v) => update({ fertileWindowEnabled: v })}
             disabled={notifDisabled}
+            icon={Sparkles}
+            iconColor="#2CC98B"
           />
 
           <Divider />
@@ -314,21 +327,22 @@ export default function NotificationsScreen() {
             value={settings.ovulationEnabled}
             onValueChange={(v) => update({ ovulationEnabled: v })}
             disabled={notifDisabled}
+            icon={Star}
+            iconColor="#F5C37A"
           />
         </Card>
 
         {/* Daily reminders */}
+        <Typography style={s.sectionLabel} color={colors.textTertiary}>DAILY REMINDERS</Typography>
         <Card padding={16}>
-          <Typography variant="label" color={colors.textSecondary} style={s.cardTitle}>
-            Daily reminders
-          </Typography>
-
           <SettingSwitch
             label="Daily log nudge"
             subtitle="Remind me to log my symptoms each day"
             value={settings.dailyLogEnabled}
             onValueChange={(v) => update({ dailyLogEnabled: v })}
             disabled={notifDisabled}
+            icon={FileText}
+            iconColor={Colors.gold}
           />
           {settings.dailyLogEnabled && (
             <TimeDisplay 
@@ -346,6 +360,8 @@ export default function NotificationsScreen() {
             value={settings.pillReminderEnabled}
             onValueChange={(v) => update({ pillReminderEnabled: v })}
             disabled={notifDisabled}
+            icon={Pill}
+            iconColor={colors.accent}
           />
           {settings.pillReminderEnabled && (
             <View style={{ gap: 8 }}>
@@ -379,6 +395,8 @@ export default function NotificationsScreen() {
             value={settings.waterReminderEnabled}
             onValueChange={(v) => update({ waterReminderEnabled: v })}
             disabled={notifDisabled}
+            icon={Droplets}
+            iconColor="#60A5FA"
           />
           {settings.waterReminderEnabled && (
             <View style={{ marginTop: 4, gap: 6 }}>
@@ -492,8 +510,25 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
   },
-  scroll: { padding: Spacing.md, gap: Spacing.md, paddingBottom: Spacing['3xl'] },
+  scroll: { padding: Spacing.md, gap: 12, paddingBottom: Spacing['3xl'] },
   cardTitle: { marginBottom: 14, fontWeight: '700' },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    marginBottom: 8,
+    marginLeft: 4,
+    textTransform: 'uppercase',
+  } as const,
+  iconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    flexShrink: 0,
+  },
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
