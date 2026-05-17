@@ -21,6 +21,8 @@ notifee.onBackgroundEvent(async ({ type, detail }) => {
   const actionId = detail.pressAction?.id;
   const notification = detail.notification;
 
+  console.log('[Notif][BG] Action received:', actionId, '| notif id:', notification?.id);
+
   // Always dismiss the source notification
   if (notification?.id) {
     await notifee.cancelNotification(notification.id).catch(() => {});
@@ -37,12 +39,13 @@ notifee.onBackgroundEvent(async ({ type, detail }) => {
           android: {
             channelId: notification?.android?.channelId ?? 'juno-daily',
             actions: notification?.android?.actions ?? [],
-    
+
           },
           data: notification?.data ?? {},
         },
         { type: TriggerType.TIMESTAMP, timestamp: in15.getTime() }
       );
+      console.log('[Notif][BG] remind-15: rescheduled for', in15.toISOString());
       break;
     }
 
@@ -59,12 +62,13 @@ notifee.onBackgroundEvent(async ({ type, detail }) => {
           android: {
             channelId: 'juno-cycle',
             actions: notification?.android?.actions ?? [],
-    
+
           },
           data: notification?.data ?? {},
         },
         { type: TriggerType.TIMESTAMP, timestamp: tomorrow.getTime() }
       );
+      console.log('[Notif][BG] period-not-yet: check-in rescheduled for', tomorrow.toISOString());
       break;
     }
 
@@ -85,10 +89,12 @@ notifee.onBackgroundEvent(async ({ type, detail }) => {
         timestamp: Date.now(),
       });
       await AsyncStorage.setItem(PENDING_ACTIONS_KEY, JSON.stringify(queue));
+      console.log('[Notif][BG] Queued to AsyncStorage:', actionId, '| queue length:', queue.length);
       break;
     }
 
     default:
+      console.log('[Notif][BG] Unhandled action (no-op):', actionId);
       break;
   }
 });

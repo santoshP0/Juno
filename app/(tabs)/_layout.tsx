@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Home, Calendar, BarChart2, BookOpen, User } from 'lucide-react-native';
@@ -29,11 +29,7 @@ function TabBarIcon({
       {focused && (
         <View style={[styles.activeIndicator, { backgroundColor: colors.accent + '22' }]} />
       )}
-      <Icon
-        color={color}
-        size={size}
-        strokeWidth={focused ? 2.4 : 1.8}
-      />
+      <Icon color={color} size={size} strokeWidth={focused ? 2.4 : 1.8} />
       {focused && (
         <View style={[styles.activeDot, { backgroundColor: colors.accent }]} />
       )}
@@ -53,9 +49,7 @@ export default function TabsLayout() {
       const user = await getUser(db);
       if (user) setProfile(user);
       await reload();
-      // Drain any notification actions captured while app was killed
       await processPendingNotifActions(db);
-      // Reschedule on every launch so predictions stay current
       const prediction = useCycleStore.getState().prediction;
       if (prediction) {
         scheduleAllNotifications(prediction, notifications).catch(() => {});

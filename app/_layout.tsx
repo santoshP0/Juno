@@ -58,14 +58,17 @@ function AppGuard({ children }: { children: React.ReactNode }) {
         const actionId = detail.pressAction?.id;
         if (!actionId) return;
 
+        console.log('[Notif][FG] Foreground action press:', actionId);
         await handleNotifeeAction(db, actionId, detail.notification);
 
         // Only navigate for actions that explicitly open the app
         if (actionId === NOTIF_ACTION.LOG_NOW || actionId === NOTIF_ACTION.PERIOD_STARTED) {
+          console.log('[Notif][FG] Navigating for action:', actionId);
           navigateForAction(actionId, detail.notification?.data as any);
         }
       } else if (type === EventType.PRESS) {
         // Bare notification body tapped → home
+        console.log('[Notif][FG] Notification body tapped → home');
         router.push('/');
       }
     });
@@ -79,8 +82,12 @@ function AppGuard({ children }: { children: React.ReactNode }) {
   // prevents re-firing when navigateForAction ref changes after navigation.
   useEffect(() => {
     notifee.getInitialNotification().then((initial) => {
-      if (!initial) return;
+      if (!initial) {
+        console.log('[Notif][INIT] No initial notification (normal launch).');
+        return;
+      }
       const actionId = initial.pressAction?.id;
+      console.log('[Notif][INIT] App launched from notification. actionId:', actionId ?? '(body tap)');
       if (actionId) {
         navigateForAction(actionId, initial.notification.data as any);
       } else {

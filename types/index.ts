@@ -234,4 +234,4 @@ export interface CycleStats {
   weightHistory: { date: string; value: number }[];
 }
 
-export type InsightTimeRange = '3m' | '6m' | '12m' | 'all';
+export type InsightTimeRange = 'today' | 'yesterday' | '7d' | '30d' | '3m' | 'all';

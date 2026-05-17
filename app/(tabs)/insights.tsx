@@ -1,14 +1,25 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   View,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   useWindowDimensions,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LineChart, BarChart, PieChart } from 'react-native-gifted-charts';
-import { subMonths, parseISO, isAfter, format } from 'date-fns';
+import {
+  subDays,
+  subMonths,
+  parseISO,
+  isAfter,
+  isSameDay,
+  format,
+  startOfDay,
+  endOfDay,
+  isWithinInterval,
+} from 'date-fns';
 
 import { Typography } from '../../components/ui/Typography';
 import { Card } from '../../components/ui/Card';
@@ -27,10 +38,12 @@ import type { InsightTimeRange, Symptom, Mood } from '../../types';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const RANGES: { key: InsightTimeRange; label: string }[] = [
-  { key: '3m', label: '3 mo' },
-  { key: '6m', label: '6 mo' },
-  { key: '12m', label: '12 mo' },
-  { key: 'all', label: 'All' },
+  { key: 'today',     label: 'Today' },
+  { key: 'yesterday', label: 'Yesterday' },
+  { key: '7d',        label: '7 days' },
+  { key: '30d',       label: '30 days' },
+  { key: '3m',        label: '3 months' },
+  { key: 'all',       label: 'All time' },
 ];
 
 const MOOD_LABELS: Record<Mood, string> = {
@@ -49,12 +62,36 @@ const SYMPTOM_LABELS: Record<Symptom, string> = {
   pelvic_pain: 'Pelvic pain',
 };
 
-function rangeCutoff(range: InsightTimeRange): Date | null {
+function rangeCutoff(range: InsightTimeRange): { from: Date; to: Date } {
   const now = new Date();
-  if (range === '3m') return subMonths(now, 3);
-  if (range === '6m') return subMonths(now, 6);
-  if (range === '12m') return subMonths(now, 12);
-  return null;
+  switch (range) {
+    case 'today':
+      return { from: startOfDay(now), to: endOfDay(now) };
+    case 'yesterday': {
+      const y = subDays(now, 1);
+      return { from: startOfDay(y), to: endOfDay(y) };
+    }
+    case '7d':
+      return { from: startOfDay(subDays(now, 6)), to: endOfDay(now) };
+    case '30d':
+      return { from: startOfDay(subDays(now, 29)), to: endOfDay(now) };
+    case '3m':
+      return { from: subMonths(now, 3), to: endOfDay(now) };
+    case 'all':
+    default:
+      return { from: new Date(0), to: endOfDay(now) };
+  }
+}
+
+function rangeLabel(range: InsightTimeRange): string {
+  switch (range) {
+    case 'today':     return 'Today';
+    case 'yesterday': return 'Yesterday';
+    case '7d':        return 'Last 7 days';
+    case '30d':       return 'Last 30 days';
+    case '3m':        return 'Last 3 months';
+    case 'all':       return 'All time';
+  }
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -63,10 +100,16 @@ function SectionHeader({ title }: { title: string }) {
   const colors = useColors();
   return (
     <View style={s.sectionHeader}>
-      <View style={[s.sectionDot, { backgroundColor: colors.accent }]} />
-      <Typography variant="label" color={colors.textSecondary} style={{ fontWeight: '700', letterSpacing: 0.5 }}>
-        {title.toUpperCase()}
-      </Typography>
+      <View style={[s.sectionPill, { backgroundColor: colors.accent + '18' }]}>
+        <View style={[s.sectionDot, { backgroundColor: colors.accent }]} />
+        <Typography
+          variant="label"
+          color={colors.accent}
+          style={{ fontWeight: '700', letterSpacing: 0.8, fontSize: 11 }}
+        >
+          {title.toUpperCase()}
+        </Typography>
+      </View>
     </View>
   );
 }
@@ -91,14 +134,17 @@ function MiniTriStat({
           { count: mid, label: midLabel, color: midColor },
           { count: high, label: highLabel, color: highColor },
         ].map(({ count, label, color }) => (
-          <View key={label} style={[s.triBlock, { backgroundColor: color + '15', borderColor: color + '30' }]}>
+          <View
+            key={label}
+            style={[s.triBlock, { backgroundColor: color + '12', borderColor: color + '25' }]}
+          >
             <Typography variant="h4" color={color} style={{ fontWeight: '800' }}>
               {count}
             </Typography>
-            <Typography variant="caption" color={colors.textTertiary} style={{ marginTop: 2 }}>
+            <Typography variant="caption" color={colors.textTertiary} style={{ marginTop: 2, textAlign: 'center' }}>
               {label}
             </Typography>
-            <View style={[s.triBar, { backgroundColor: color + '30' }]}>
+            <View style={[s.triBar, { backgroundColor: color + '20' }]}>
               <View
                 style={[
                   s.triBarFill,
@@ -113,25 +159,138 @@ function MiniTriStat({
   );
 }
 
+/** Horizontal scrollable day-by-day activity cards (inspired by reference image) */
+function DayTimeline({ logs, range }: {
+  logs: ReturnType<typeof useCycleStore>['logs'];
+  range: InsightTimeRange;
+}) {
+  const colors = useColors();
+  // Only meaningful for 7d / 30d views
+  if (range === 'today' || range === 'yesterday' || range === 'all' || range === '3m') return null;
+
+  const days = range === '7d' ? 7 : 14;
+  const daySlots = Array.from({ length: days }, (_, i) => {
+    const date = subDays(new Date(), days - 1 - i);
+    const log = logs.find((l) => isSameDay(parseISO(l.date), date));
+    const hasFlow = log?.flow != null;
+    const hasPill = log?.pillTaken != null;
+    const hasWater = (log?.waterIntake ?? 0) > 0;
+    const hasSymptomsOrMood = (log?.symptoms?.length ?? 0) > 0 || (log?.moods?.length ?? 0) > 0;
+    const isToday = isSameDay(date, new Date());
+
+    return { date, log, hasFlow, hasPill, hasWater, hasSymptomsOrMood, isToday };
+  });
+
+  return (
+    <Card padding={0} style={{ overflow: 'hidden' }}>
+      <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 }}>
+        <Typography variant="label" color={colors.textSecondary} style={{ fontWeight: '700' }}>
+          Daily activity — {range === '7d' ? 'last 7 days' : 'last 14 days'}
+        </Typography>
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 14, gap: 8, flexDirection: 'row' }}
+      >
+        {daySlots.map(({ date, hasFlow, hasPill, hasWater, hasSymptomsOrMood, isToday, log }) => {
+          const logged = !!(log);
+          return (
+            <View
+              key={date.toISOString()}
+              style={[
+                s.dayCard,
+                {
+                  backgroundColor: isToday
+                    ? colors.accent + '14'
+                    : logged
+                    ? colors.surface
+                    : colors.surfaceSecondary,
+                  borderColor: isToday ? colors.accent + '50' : colors.border,
+                  borderWidth: isToday ? 1.5 : 1,
+                },
+              ]}
+            >
+              <Typography
+                variant="caption"
+                color={isToday ? colors.accent : colors.textTertiary}
+                style={{ fontWeight: '700', fontSize: 10 }}
+              >
+                {format(date, 'EEE').toUpperCase()}
+              </Typography>
+              <Typography
+                variant="label"
+                color={isToday ? colors.accent : colors.textSecondary}
+                style={{ fontWeight: '800', fontSize: 16, marginTop: 2 }}
+              >
+                {format(date, 'd')}
+              </Typography>
+
+              {/* Activity dots */}
+              <View style={s.dayDots}>
+                <View style={[s.actDot, { backgroundColor: hasFlow ? Colors.phases.menstrual : colors.border }]} />
+                <View style={[s.actDot, { backgroundColor: hasPill ? Colors.success : colors.border }]} />
+                <View style={[s.actDot, { backgroundColor: hasWater ? Colors.info : colors.border }]} />
+                <View style={[s.actDot, { backgroundColor: hasSymptomsOrMood ? Colors.phases.luteal : colors.border }]} />
+              </View>
+
+              {!logged && (
+                <Typography variant="caption" color={colors.textTertiary} style={{ fontSize: 9, marginTop: 4 }}>
+                  No log
+                </Typography>
+              )}
+            </View>
+          );
+        })}
+      </ScrollView>
+
+      {/* Legend */}
+      <View style={[s.timelineLegend, { borderTopColor: colors.border }]}>
+        {[
+          { color: Colors.phases.menstrual, label: 'Flow' },
+          { color: Colors.success,          label: 'Pill' },
+          { color: Colors.info,             label: 'Water' },
+          { color: Colors.phases.luteal,    label: 'Symptoms' },
+        ].map(({ color, label }) => (
+          <View key={label} style={s.legendItem}>
+            <View style={[s.legendDot, { backgroundColor: color }]} />
+            <Typography variant="caption" color={colors.textTertiary} style={{ fontSize: 10 }}>
+              {label}
+            </Typography>
+          </View>
+        ))}
+      </View>
+    </Card>
+  );
+}
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function InsightsScreen() {
   const colors = useColors();
   const { cycles, logs } = useCycleStore();
-  const [range, setRange] = useState<InsightTimeRange>('6m');
+  const [range, setRange] = useState<InsightTimeRange>('today');
   const { width: screenWidth } = useWindowDimensions();
   const chartWidth = screenWidth - 64;
+  const filterRef = useRef<ScrollView>(null);
 
-  const cutoff = useMemo(() => rangeCutoff(range), [range]);
+  const { from, to } = useMemo(() => rangeCutoff(range), [range]);
 
   const filteredCycles = useMemo(
-    () => cycles.filter((c) => c.length && (!cutoff || isAfter(parseISO(c.startDate), cutoff))),
-    [cycles, cutoff]
+    () => cycles.filter((c) => {
+      if (!c.length) return false;
+      const d = parseISO(c.startDate);
+      return isWithinInterval(d, { start: from, end: to });
+    }),
+    [cycles, from, to]
   );
 
   const filteredLogs = useMemo(
-    () => logs.filter((l) => !cutoff || isAfter(parseISO(l.date), cutoff)),
-    [logs, cutoff]
+    () => logs.filter((l) => {
+      const d = parseISO(l.date);
+      return isWithinInterval(d, { start: from, end: to });
+    }),
+    [logs, from, to]
   );
 
   // ── Cycle stats ────────────────────────────────────────────────────────────
@@ -187,7 +346,7 @@ export default function InsightsScreen() {
 
   const symptomFreq = useMemo(() => {
     const counts: Record<string, number> = {};
-    filteredLogs.forEach((l) => l.symptoms.forEach((s) => { counts[s] = (counts[s] ?? 0) + 1; }));
+    filteredLogs.forEach((l) => l.symptoms.forEach((sym) => { counts[sym] = (counts[sym] ?? 0) + 1; }));
     return Object.entries(counts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8)
@@ -216,12 +375,12 @@ export default function InsightsScreen() {
   // ── Energy distribution ───────────────────────────────────────────────────
 
   const energyCounts = useMemo(() => {
-    const logsWithEnergy = filteredLogs.filter((l) => l.energyLevel);
+    const withEnergy = filteredLogs.filter((l) => l.energyLevel);
     return {
-      low: logsWithEnergy.filter((l) => l.energyLevel === 'low').length,
-      medium: logsWithEnergy.filter((l) => l.energyLevel === 'medium').length,
-      high: logsWithEnergy.filter((l) => l.energyLevel === 'high').length,
-      total: logsWithEnergy.length,
+      low:    withEnergy.filter((l) => l.energyLevel === 'low').length,
+      medium: withEnergy.filter((l) => l.energyLevel === 'medium').length,
+      high:   withEnergy.filter((l) => l.energyLevel === 'high').length,
+      total:  withEnergy.length,
     };
   }, [filteredLogs]);
 
@@ -248,18 +407,15 @@ export default function InsightsScreen() {
   }, [filteredLogs]);
 
   const sleepData = useMemo(
-    () => sleepLogs
-      .slice(-14)
-      .reverse()
-      .map((l) => ({
-        value: l.sleepHours ?? 0,
-        label: format(parseISO(l.date), 'EE').charAt(0),
-        frontColor: l.sleepHours != null && l.sleepHours >= 7
-          ? Colors.success
-          : l.sleepHours != null && l.sleepHours >= 6
-          ? Colors.warning
-          : Colors.error,
-      })),
+    () => sleepLogs.slice(-14).reverse().map((l) => ({
+      value: l.sleepHours ?? 0,
+      label: format(parseISO(l.date), 'EE').charAt(0),
+      frontColor: l.sleepHours != null && l.sleepHours >= 7
+        ? Colors.success
+        : l.sleepHours != null && l.sleepHours >= 6
+        ? Colors.warning
+        : Colors.error,
+    })),
     [sleepLogs]
   );
 
@@ -281,17 +437,12 @@ export default function InsightsScreen() {
     const taken = pillLogs.filter((l) => l.pillTaken === true).length;
     const skipped = pillLogs.length - taken;
     return [
-      { value: taken, color: Colors.success, text: `${taken}` },
-      { value: skipped, color: Colors.error + '80', text: `${skipped}` },
+      { value: taken,   color: Colors.success,        text: `${taken}` },
+      { value: skipped, color: Colors.error + '80',   text: `${skipped}` },
     ];
   }, [pillLogs]);
 
   // ── Water intake ───────────────────────────────────────────────────────────
-
-  const waterLogs = useMemo(
-    () => filteredLogs.filter((l) => (l.waterIntake ?? 0) > 0),
-    [filteredLogs]
-  );
 
   const avgWater = useMemo(
     () => filteredLogs.length
@@ -303,71 +454,54 @@ export default function InsightsScreen() {
   );
 
   const waterData = useMemo(
-    () => filteredLogs
-      .slice(-14)
-      .reverse()
-      .map((l) => ({
-        value: l.waterIntake ?? 0,
-        label: format(parseISO(l.date), 'EE').charAt(0),
-        frontColor: (l.waterIntake ?? 0) >= 6
-          ? Colors.info
-          : (l.waterIntake ?? 0) >= 3
-          ? Colors.info + 'AA'
-          : Colors.info + '44',
-      })),
+    () => filteredLogs.slice(-14).reverse().map((l) => ({
+      value: l.waterIntake ?? 0,
+      label: format(parseISO(l.date), 'EE').charAt(0),
+      frontColor: (l.waterIntake ?? 0) >= 6
+        ? Colors.info
+        : (l.waterIntake ?? 0) >= 3
+        ? Colors.info + 'AA'
+        : Colors.info + '44',
+    })),
     [filteredLogs]
   );
 
   // ── BBT ───────────────────────────────────────────────────────────────────
 
   const bbtData = useMemo(
-    () => filteredLogs
-      .filter((l) => l.bbt)
-      .slice(-30)
-      .reverse()
-      .map((l) => ({
-        value: l.bbt!,
-        label: format(parseISO(l.date), 'dd'),
-        dataPointColor: Colors.gold,
-      })),
+    () => filteredLogs.filter((l) => l.bbt).slice(-30).reverse().map((l) => ({
+      value: l.bbt!,
+      label: format(parseISO(l.date), 'dd'),
+      dataPointColor: Colors.gold,
+    })),
     [filteredLogs]
   );
 
   // ── Weight ────────────────────────────────────────────────────────────────
 
-  const weightLogs = useMemo(
-    () => filteredLogs.filter((l) => l.weight),
-    [filteredLogs]
-  );
-
   const weightData = useMemo(
-    () => weightLogs
-      .slice(-20)
-      .reverse()
-      .map((l) => ({
-        value: l.weight!,
-        label: format(parseISO(l.date), 'MMM d'),
-        dataPointColor: Colors.plum,
-      })),
-    [weightLogs]
+    () => filteredLogs.filter((l) => l.weight).slice(-20).reverse().map((l) => ({
+      value: l.weight!,
+      label: format(parseISO(l.date), 'MMM d'),
+      dataPointColor: Colors.plum,
+    })),
+    [filteredLogs]
   );
 
   // ── Insight text ──────────────────────────────────────────────────────────
 
   const insightText = useMemo(() => {
-    if (!avgCycleLength) return null;
-    if (cycleLengths.length >= 3 && regularityScore && regularityScore >= 80) {
+    if (!avgCycleLength) {
+      if (pillCompliance !== null && pillCompliance >= 90)
+        return `Excellent pill compliance at ${pillCompliance}%! Consistent tracking helps Juno give you the most accurate health picture.`;
+      if (avgSleepHours !== null && avgSleepHours < 7)
+        return `You're averaging ${avgSleepHours}h of sleep — a little below the recommended 7–9h. Sleep quality often affects cycle regularity and mood.`;
+      return `Keep logging to unlock personalized insights about your cycle patterns, sleep, energy, and more.`;
+    }
+    if (cycleLengths.length >= 3 && regularityScore && regularityScore >= 80)
       return `Your cycles have been very consistent — averaging ${avgCycleLength} days over the last ${filteredCycles.length} cycles. Great for prediction accuracy!`;
-    }
-    if (cycleLengths.length >= 3 && regularityScore && regularityScore < 60) {
+    if (cycleLengths.length >= 3 && regularityScore && regularityScore < 60)
       return `Your cycles vary by a few days, which is completely normal. Logging more cycles will help Juno improve its predictions over time.`;
-    }
-    if (pillCompliance !== null && pillCompliance >= 90) {
-      return `Excellent pill compliance at ${pillCompliance}%! Consistent tracking helps Juno give you the most accurate health picture.`;
-    }
-    if (avgSleepHours !== null && avgSleepHours < 7) {
-      return `You're averaging ${avgSleepHours}h of sleep — a little below the recommended 7–9h. Sleep quality often affects cycle regularity and mood.`;
-    }
     return `Keep logging to unlock personalized insights about your cycle patterns, sleep, energy, and more.`;
   }, [avgCycleLength, cycleLengths, regularityScore, filteredCycles, pillCompliance, avgSleepHours]);
 
@@ -385,48 +519,71 @@ export default function InsightsScreen() {
     <SafeAreaView style={[s.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* Header */}
+        {/* ── Header ─────────────────────────────────────────────────────── */}
         <View style={s.header}>
-          <Typography variant="h3" style={{ fontWeight: '800' }}>Insights</Typography>
-          <Typography variant="caption" color={colors.textTertiary} style={{ marginTop: 2 }}>
-            {filteredLogs.length} logs · {filteredCycles.length} cycles
-          </Typography>
+          <View>
+            <Typography variant="h3" style={{ fontWeight: '800' }}>Insights</Typography>
+            <Typography variant="caption" color={colors.textTertiary} style={{ marginTop: 2 }}>
+              {rangeLabel(range)} · {filteredLogs.length} logs · {filteredCycles.length} cycles
+            </Typography>
+          </View>
         </View>
 
-        {/* Time range */}
-        <View style={[s.rangeRow, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}>
-          {RANGES.map((r) => (
-            <TouchableOpacity
-              key={r.key}
-              onPress={() => setRange(r.key)}
-              style={[s.rangeBtn, { backgroundColor: range === r.key ? colors.accent : 'transparent' }]}
-            >
-              <Typography
-                variant="caption"
-                color={range === r.key ? Colors.white : colors.textSecondary}
-                style={{ fontWeight: '700' }}
+        {/* ── Time range filter (horizontal scroll chips) ─────────────────── */}
+        <ScrollView
+          ref={filterRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.filterRow}
+        >
+          {RANGES.map((r) => {
+            const active = range === r.key;
+            return (
+              <TouchableOpacity
+                key={r.key}
+                onPress={() => setRange(r.key)}
+                activeOpacity={0.75}
+                style={[
+                  s.filterChip,
+                  active
+                    ? { backgroundColor: colors.accent, borderColor: colors.accent }
+                    : { backgroundColor: colors.surface, borderColor: colors.border },
+                ]}
               >
-                {r.label}
-              </Typography>
-            </TouchableOpacity>
-          ))}
-        </View>
+                <Typography
+                  variant="caption"
+                  color={active ? Colors.white : colors.textSecondary}
+                  style={{ fontWeight: active ? '700' : '500' }}
+                >
+                  {r.label}
+                </Typography>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
 
         {!hasData ? (
           <EmptyState
             emoji="📊"
             title="No data yet"
-            description="Log your symptoms, pills, water intake, and more to see your personal health trends here."
+            description={
+              range === 'today' || range === 'yesterday'
+                ? `No logs found for ${rangeLabel(range).toLowerCase()}. Start logging to see your daily snapshot.`
+                : 'Log your symptoms, pills, water intake, and more to see your personal health trends here.'
+            }
           />
         ) : (
           <>
+            {/* ── DAY TIMELINE (7d / 30d) ─────────────────────────────────── */}
+            <DayTimeline logs={logs} range={range} />
+
             {/* ── CYCLE OVERVIEW ──────────────────────────────────────────── */}
             {filteredCycles.length > 0 && (
               <>
                 <SectionHeader title="Cycle overview" />
 
                 <View style={s.statsRow}>
-                  <StatCard label="Avg cycle" value={avgCycleLength ?? '—'} unit="days" color={colors.accent} />
+                  <StatCard label="Avg cycle"  value={avgCycleLength ?? '—'}  unit="days" color={colors.accent} />
                   <StatCard label="Avg period" value={avgPeriodLength ?? '—'} unit="days" color={Colors.phases.menstrual} />
                 </View>
                 <View style={s.statsRow}>
@@ -549,7 +706,7 @@ export default function InsightsScreen() {
                       {[
                         { color: Colors.success, label: '≥ 7h' },
                         { color: Colors.warning, label: '6–7h' },
-                        { color: Colors.error, label: '< 6h' },
+                        { color: Colors.error,   label: '< 6h' },
                       ].map(({ color, label }) => (
                         <View key={label} style={s.legendItem}>
                           <View style={[s.legendDot, { backgroundColor: color }]} />
@@ -645,9 +802,9 @@ export default function InsightsScreen() {
                     </Typography>
                     <View style={s.legendRow}>
                       {[
-                        { color: Colors.info, label: '≥ 6 glasses' },
-                        { color: Colors.info + 'AA', label: '3–5' },
-                        { color: Colors.info + '44', label: '< 3' },
+                        { color: Colors.info,          label: '≥ 6 glasses' },
+                        { color: Colors.info + 'AA',   label: '3–5' },
+                        { color: Colors.info + '44',   label: '< 3' },
                       ].map(({ color, label }) => (
                         <View key={label} style={s.legendItem}>
                           <View style={[s.legendDot, { backgroundColor: color }]} />
@@ -721,12 +878,20 @@ export default function InsightsScreen() {
             {insightText && (
               <Card
                 padding={16}
-                style={{ borderLeftWidth: 4, borderLeftColor: colors.accent }}
+                style={{
+                  borderLeftWidth: 3,
+                  borderLeftColor: colors.accent,
+                  backgroundColor: colors.accent + '08',
+                }}
               >
-                <Typography variant="label" color={colors.accent} style={{ marginBottom: 6, fontWeight: '700' }}>
-                  ✨ Juno insight
-                </Typography>
-                <Typography variant="body2" color={colors.textSecondary} style={{ lineHeight: 20 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <View style={[s.insightBadge, { backgroundColor: colors.accent + '18' }]}>
+                    <Typography variant="caption" color={colors.accent} style={{ fontWeight: '700', fontSize: 10 }}>
+                      JUNO INSIGHT
+                    </Typography>
+                  </View>
+                </View>
+                <Typography variant="body2" color={colors.textSecondary} style={{ lineHeight: 21 }}>
                   {insightText}
                 </Typography>
               </Card>
@@ -741,36 +906,73 @@ export default function InsightsScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  container: { flex: 1 },
-  scroll: { padding: Spacing.md, gap: Spacing.md, paddingBottom: Spacing['3xl'] },
-  header: { paddingTop: Spacing.sm, paddingBottom: 4 },
-  rangeRow: {
+  container:   { flex: 1 },
+  scroll:      { padding: Spacing.md, gap: Spacing.md, paddingBottom: Spacing['3xl'] },
+  header:      { paddingTop: Spacing.sm, paddingBottom: 4, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+
+  // Filter chips
+  filterRow: {
     flexDirection: 'row',
-    borderRadius: Radius.full,
-    borderWidth: 1,
-    padding: 3,
-    gap: 2,
-  },
-  rangeBtn: {
-    flex: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 7,
-    borderRadius: Radius.full,
-    alignItems: 'center',
-  },
-  statsRow: { flexDirection: 'row', gap: Spacing.sm },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 8,
-    marginTop: 4,
-    marginBottom: -4,
+    paddingVertical: 2,
+  },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: Radius.full,
+    borderWidth: 1.5,
+  },
+
+  // Section header pill
+  sectionHeader: { marginTop: 4, marginBottom: -4 },
+  sectionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: Radius.full,
   },
   sectionDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
   },
+
+  statsRow: { flexDirection: 'row', gap: Spacing.sm },
+
+  // Day timeline
+  dayCard: {
+    width: 58,
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    borderRadius: Radius.lg,
+  },
+  dayDots: {
+    flexDirection: 'row',
+    gap: 3,
+    marginTop: 8,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    width: 32,
+  },
+  actDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  timelineLegend: {
+    flexDirection: 'row',
+    gap: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    flexWrap: 'wrap',
+  },
+
+  // Charts
   chartTitle: { marginBottom: 12, fontWeight: '700' },
   legendRow: {
     flexDirection: 'row',
@@ -788,6 +990,8 @@ const s = StyleSheet.create({
     height: 8,
     borderRadius: 4,
   },
+
+  // Energy tri-stat
   triBlock: {
     flex: 1,
     padding: 12,
@@ -806,5 +1010,12 @@ const s = StyleSheet.create({
   triBarFill: {
     height: '100%',
     borderRadius: 2,
+  },
+
+  // Insight card
+  insightBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radius.sm,
   },
 });
